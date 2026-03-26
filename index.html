@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Sub Shop — OWASP Top 10 Training Lab</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="pages/menu.html">Menu</a></li>
+    <li><a href="pages/order.html">Order</a></li>
+    <li><a href="pages/loyalty.html">Rewards</a></li>
+    <li><a href="pages/cart.html">Cart</a></li>
+    <li><a href="scorecard.html">Scorecard</a></li>
+  </ul>
+</nav>
+
+<section class="hero">
+  <div class="hero-tag">OWASP Top 10 · Security Training Lab</div>
+  <h1>THE <em>SUB</em> SHOP</h1>
+  <p>
+    A deliberately vulnerable web app. Each page hides a real, exploitable security flaw.
+    Find them, exploit them, document them on your scorecard.
+  </p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+    <a href="#challenges" class="btn btn-primary">View Challenges</a>
+    <a href="scorecard.html" class="btn btn-ghost">Open Scorecard</a>
+  </div>
+  <!-- Photo credit: dev@subshop.internal | Sub Shop Media Team 2026          -->
+  <!-- Curious? Not everything is visible on screen. Images can hold secrets.  -->
+  <!-- Try: python -c "from PIL import Image; img=Image.open('assets/sandwiches.png'); print(img.info)" -->
+  <!-- Or:  exiftool assets/sandwiches.png                                     -->
+  <img src="assets/sandwiches.png" alt="The Sub Shop — Fresh Subs Daily" class="hero-img">
+</section>
+
+<div class="container">
+
+  <!-- Progress Bar -->
+  <div id="progress-section" style="margin-bottom:1.5rem;">
+    <div class="stats-row">
+      <div class="stat">
+        <span class="stat-num" id="stat-completed">0</span>
+        <span class="stat-label">Completed</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">10</span>
+        <span class="stat-label">Total</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="stat-pct">0%</span>
+        <span class="stat-label">Progress</span>
+      </div>
+    </div>
+    <div class="score-bar">
+      <div class="score-fill" id="score-fill" style="width:0%"></div>
+    </div>
+    <p style="margin-top:0.75rem;font-size:0.75rem;color:var(--text-muted);">
+      Progress is saved in your browser's localStorage.
+      <button onclick="SubShop.resetProgress()" style="background:none;border:none;color:var(--danger);font-size:0.75rem;cursor:pointer;text-decoration:underline;font-family:inherit;">Reset</button>
+    </p>
+  </div>
+
+  <!-- Challenge Board -->
+  <div id="challenges">
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.06em;margin-bottom:0.25rem;">Challenge Board</h2>
+    <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:0;">Each challenge targets one OWASP Top 10 category. Hints are hidden in page source.</p>
+  </div>
+
+  <div class="challenge-grid" id="challenge-grid">
+    <!-- Cards injected by JS -->
+  </div>
+
+  <!-- How to Play -->
+  <div class="panel" style="margin-top:1rem;">
+    <h2>How to Play</h2>
+    <ol style="padding-left:1.25rem;color:var(--text-muted);font-size:0.88rem;line-height:2;">
+      <li>Visit a challenge page — it looks like a real sub shop feature.</li>
+      <li>Open <strong style="color:var(--text);">DevTools</strong> (F12) and explore: Sources, Console, Application, Network.</li>
+      <li>Look for hints in <strong style="color:var(--text);">HTML comments</strong> and <strong style="color:var(--text);">JS comments</strong> in the page source.</li>
+      <li>Exploit the vulnerability — each one is achievable from the browser alone.</li>
+      <li>Document your findings on the <a href="scorecard.html">Scorecard</a>.</li>
+    </ol>
+    <div style="margin-top:1rem;padding:0.85rem;background:var(--surface-2);border-radius:var(--radius);font-size:0.82rem;color:var(--text-muted);">
+      <strong style="color:var(--text);">Tools you'll need:</strong>
+      Browser DevTools (F12) — Inspect Element · Console · Application tab · Network tab · View Page Source (Ctrl+U)
+    </div>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; For educational use only &bull;
+  <a href="scorecard.html">Open Scorecard →</a>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+  function refreshBoard() {
+    const progress = SubShop.getProgress();
+    const completedCount = SubShop.getCompletedCount();
+    const pct = Math.round((completedCount / 10) * 100);
+
+    document.getElementById('stat-completed').textContent = completedCount;
+    document.getElementById('stat-pct').textContent = pct + '%';
+    document.getElementById('score-fill').style.width = pct + '%';
+
+    const grid = document.getElementById('challenge-grid');
+    grid.innerHTML = '';
+
+    SubShop.CHALLENGES.forEach(ch => {
+      const done = !!progress[ch.id];
+      const card = document.createElement('a');
+      card.href = ch.page;
+      card.className = 'challenge-card' + (done ? ' completed' : '');
+      card.innerHTML = `
+        <div class="card-owasp">${ch.owasp} &middot; Challenge #${ch.id}</div>
+        <div class="card-title">${ch.name}</div>
+        <div class="card-sub">${ch.sub}</div>
+        <span class="difficulty ${ch.difficulty}">${ch.difficulty}</span>
+        ${done ? '<div style="font-size:0.72rem;color:var(--success);margin-top:0.75rem;">Completed ✓</div>' : ''}
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  refreshBoard();
+</script>
+</body>
+</html>

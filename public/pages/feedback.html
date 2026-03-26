@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a09">
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #9 · A09 — Security Logging & Monitoring Failures ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: Submit sensitive-looking data. Then visit /pages/logs.html to see what was stored. -->
+<!--                                                                  -->
+<!-- VULNERABILITY: The feedback form accepts free-form payment info  -->
+<!-- (e.g. card numbers) without validation or masking. The entire   -->
+<!-- form payload — including PII — is logged to console.log() in   -->
+<!-- cleartext and stored verbatim in localStorage. No alerts fire.  -->
+<!-- Sensitive data should never appear in logs.                     -->
+
+<header class="site-header">
+  <nav class="main-nav">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <ul class="main-nav-links">
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="order.html">Order</a></li>
+      <li><a href="loyalty.html">Rewards</a></li>
+      <li><a href="#">Locations</a></li>
+      <li><a href="order.html">Catering</a></li>
+      <li><a href="../challenges.html">Challenges</a></li>
+    </ul>
+    <div class="nav-ctas">
+      <a href="login.html" class="btn-signin">Sign In</a>
+      <a href="order.html" class="btn btn-primary btn-lg">Order Now</a>
+      <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+    </div>
+  </nav>
+</header>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A09">
+  <span class="learn-tag">OWASP A09</span>
+  <strong>Security Logging &amp; Monitoring Failures</strong>
+  <span>"If the app logs raw user input without redacting PII, sensitive data accumulates silently."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — Security Logging Failures</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The feedback form accepts sensitive data and the server logs every submission. Check what ends up in the logs.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">Customer PII — credit card numbers, personal details stored in cleartext in server logs.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Submit sensitive data through the form, then visit the logs page to see what was recorded in the clear.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="page-eyebrow">SHARE YOUR FEEDBACK</div>
+    <h1>Share Your Feedback</h1>
+    <p>How was your Sub Shop experience? Let us know — we read every response.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> Fill in the feedback form. Put something sensitive in the "Payment Reference" field.</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> Submit the form. Where does the data go?</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> Visit <a href="logs.html">the Logs page</a> and look for your submission — PII is stored unredacted.</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">Enter a fake credit card number (e.g. <code>4111-1111-1111-1111</code>) in the Payment Reference field. Submit. Visit the Logs page — the full card number is visible in the raw log table. No PII redaction occurs.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;align-items:start;">
+
+    <!-- Feedback Form -->
+    <div class="panel">
+      <h2>Leave a Review</h2>
+      <div id="form-success" class="alert alert-success hidden">
+        ✓ &nbsp;Thank you for your feedback! We'll be in touch.
+      </div>
+      <form id="feedback-form" onsubmit="submitFeedback(event)">
+        <div class="form-group">
+          <label>Your Name</label>
+          <input type="text" id="f-name" placeholder="Full name" required>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="f-email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="f-phone" placeholder="(555) 000-0000">
+        </div>
+        <!-- VULNERABILITY: No validation — accepts card numbers in a "payment reference" field -->
+        <!-- The field label looks innocent but any string is accepted and logged in cleartext -->
+        <div class="form-group">
+          <label>Payment Reference <span style="font-weight:400;text-transform:none;color:var(--text-muted);font-size:0.75rem;">(order # or card used)</span></label>
+          <input type="text" id="f-payment" placeholder="Order #, last 4 digits, or card number">
+          <!-- HINT: Try entering a full card number: 4532-1234-5678-9012 -->
+        </div>
+        <div class="form-group">
+          <label>Rating</label>
+          <select id="f-rating">
+            <option value="5">⭐⭐⭐⭐⭐ — Excellent</option>
+            <option value="4">⭐⭐⭐⭐ — Good</option>
+            <option value="3">⭐⭐⭐ — Average</option>
+            <option value="2">⭐⭐ — Poor</option>
+            <option value="1">⭐ — Terrible</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Comments</label>
+          <textarea id="f-comments" placeholder="Tell us about your visit…"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit Feedback</button>
+      </form>
+    </div>
+
+    <!-- Side panel -->
+    <div>
+      <div class="panel">
+        <h2>What to Observe</h2>
+        <ol style="padding-left:1.25rem;color:var(--text-muted);font-size:0.85rem;line-height:2.2;">
+          <li>Open <strong style="color:var(--text);">DevTools → Console</strong> (F12, Console tab)</li>
+          <li>Fill in the form — put a card number like <code>4532-1234-5678-9012</code> in the Payment Reference field</li>
+          <li>Click <strong style="color:var(--text);">Submit Feedback</strong></li>
+          <li>Observe the Console output — the full payload is logged in cleartext</li>
+          <li>Check Application → LocalStorage — the data is persisted with no masking</li>
+        </ol>
+      </div>
+
+      <div class="panel" id="log-preview" style="display:none;">
+        <h2>Console Log Preview</h2>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem;">This is what was just logged to <code>console.log()</code>:</p>
+        <pre id="log-preview-content" style="font-size:0.76rem;"></pre>
+        <div class="alert alert-danger" style="margin-top:1rem;font-size:0.82rem;">
+          🚨 PII &amp; payment data logged in cleartext. No masking, no alerts, no monitoring.
+        </div>
+        <button class="btn btn-primary mt-2" onclick="SubShop.markComplete(9)">
+          ✓ &nbsp;Mark Challenge #9 Complete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">If the app logs raw user input without redacting PII, sensitive data — credit card numbers, SSNs, passwords — accumulates silently in the log table. Anyone with log access sees everything.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> A security camera recording everything including people's PIN entries at the ATM.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2017 Uber breach — logs contained unredacted credentials and PII for 57 million users.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div class="page-footer-inner">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <div class="page-footer-links">
+      <a href="menu.html">Menu</a>
+      <a href="order.html">Order</a>
+      <a href="loyalty.html">Rewards</a>
+      <a href="#">Locations</a>
+      <a href="feedback.html">Contact</a>
+    </div>
+    <div class="page-footer-copy">&copy; 2025 The Sub Shop LLC &mdash; All Rights Reserved<br><a href="../challenges.html" class="lab-link">🔐</a></div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY 1: Sensitive PII including payment data is logged to
+  // console.log() in cleartext. If this were a real hosted app, these
+  // logs would flow to a logging service, exposing card numbers.
+  //
+  // VULNERABILITY 2: No input validation — the "payment reference" field
+  // accepts full card numbers with no format check or rejection.
+  //
+  // VULNERABILITY 3: Submissions are stored verbatim in localStorage
+  // (or a DB in production) with no masking. Even stored logs should
+  // mask or truncate card numbers (show only last 4).
+  //
+  // VULNERABILITY 4: No anomaly detection — submitting 5000 card numbers
+  // would generate zero alerts.
+  //
+  // Fix: Never log PII. Mask payment data before storage (store only
+  // last 4 digits). Validate and reject card-like inputs in non-payment
+  // fields. Implement log monitoring with alerting for anomalies.
+  // ─────────────────────────────────────────────────────────────────────
+
+  function looksLikeCardNumber(s) {
+    // A real app should detect and reject this — we deliberately don't
+    return /\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}/.test(s);
+  }
+
+  function submitFeedback(e) {
+    e.preventDefault();
+
+    // Collect full form data — including sensitive payment field
+    const data = {
+      name:    document.getElementById('f-name').value,
+      email:   document.getElementById('f-email').value,
+      phone:   document.getElementById('f-phone').value,
+      payment: document.getElementById('f-payment').value,  // unmasked!
+      rating:  document.getElementById('f-rating').value,
+      comment: document.getElementById('f-comments').value,
+      ts:      new Date().toISOString(),
+    };
+
+    // ── VULNERABILITY: Full PII logged to console with zero masking ──
+    console.log('[SubShop Feedback] New submission received:', JSON.stringify(data, null, 2));
+    console.log('[SubShop Feedback] Payment field value:', data.payment); // card number in plain sight
+    // ─────────────────────────────────────────────────────────────────
+
+    // ── VULNERABILITY: Persisted verbatim in localStorage (no masking) ──
+    const key = 'subshop_feedback_' + Date.now();
+    localStorage.setItem(key, JSON.stringify(data));
+    // ─────────────────────────────────────────────────────────────────
+
+    // Show in-page log preview (mirrors what console shows)
+    document.getElementById('log-preview-content').textContent = JSON.stringify(data, null, 2);
+    document.getElementById('log-preview').style.display = 'block';
+
+    // Show success message
+    document.getElementById('form-success').classList.remove('hidden');
+    document.getElementById('feedback-form').reset();
+
+    // Scroll to preview
+    setTimeout(() => {
+      document.getElementById('log-preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  }
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>

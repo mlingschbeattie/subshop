@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Portal — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a05">
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #5 · A05 — Security Misconfiguration             ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: View the page source. Authentication logic should never live in the browser. -->
+<!--                                                                  -->
+<!-- VULNERABILITY: Admin credentials are left in a JS comment in    -->
+<!-- the shipped source code. Anyone who reads the source can log in  -->
+<!-- as admin without knowing the real password. Default/test         -->
+<!-- credentials were never removed before deployment.               -->
+
+<header class="site-header">
+  <nav class="main-nav">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <ul class="main-nav-links">
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="order.html">Order</a></li>
+      <li><a href="loyalty.html">Rewards</a></li>
+      <li><a href="#">Locations</a></li>
+      <li><a href="order.html">Catering</a></li>
+      <li><a href="../challenges.html">Challenges</a></li>
+    </ul>
+    <div class="nav-ctas">
+      <a href="login.html" class="btn-signin">Sign In</a>
+      <a href="order.html" class="btn btn-primary btn-lg">Order Now</a>
+      <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+    </div>
+  </nav>
+</header>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A05">
+  <span class="learn-tag">OWASP A05</span>
+  <strong>Security Misconfiguration</strong>
+  <span>"Credentials hardcoded in JavaScript are visible to anyone who views the source."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — Security Misconfiguration</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The staff portal requires a password, but the developers may have left credentials somewhere in the source code.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">Full administrative access to the shop's backend systems, customer data, and order management.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Find the hardcoded credentials in the page source and use them to access the admin dashboard.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="page-eyebrow">STAFF PORTAL</div>
+    <h1>Staff Portal</h1>
+    <p>For authorized Sub Shop team members only. Please log in to continue.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> This page has a password prompt. But where is the password checked?</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> Press Ctrl+U (View Source) and read the JavaScript carefully.</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> Developers left a TODO comment with the credentials — still in the shipped code.</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">View source (Ctrl+U). Search for "TODO" or "password". The credentials <code>admin / SubShop2026!</code> are hardcoded in the JavaScript. Enter them to access the admin dashboard.</div>
+    </div>
+  </div>
+
+  <!-- Login Form (shown when logged out) -->
+  <div id="login-section" style="max-width:420px;">
+    <div class="panel">
+      <h2>Admin Login</h2>
+      <div id="login-error" class="alert alert-danger hidden"></div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="admin-user" placeholder="Username" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="admin-pass" placeholder="Password">
+      </div>
+      <button class="btn btn-primary w-full" onclick="doAdminLogin()" style="width:100%;">
+        Log In
+      </button>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.75rem;">
+      Forgot your credentials? Contact IT at it@subshop.internal
+    </p>
+  </div>
+
+  <!-- Admin Dashboard (shown when logged in) -->
+  <div id="admin-dashboard" class="hidden">
+    <div class="alert alert-success">
+      ✓ &nbsp;Logged in as <strong id="logged-in-user">—</strong>.
+      <button onclick="doLogout()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.82rem;margin-left:1rem;text-decoration:underline;font-family:inherit;">Logout</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+      <div class="panel" style="text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:var(--accent);">47</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Today's Orders</div>
+      </div>
+      <div class="panel" style="text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:var(--accent);">$612</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Daily Revenue</div>
+      </div>
+      <div class="panel" style="text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:var(--accent);">3</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Staff On-Shift</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent Orders</h2>
+      <table class="data-table">
+        <thead><tr><th>#</th><th>Item</th><th>Name</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>#4821</td><td>Classic Italian</td><td>Maria K.</td><td>$12.99</td><td><span class="text-success">Ready</span></td></tr>
+          <tr><td>#4820</td><td>Turkey Club × 2</td><td>Devon F.</td><td>$26.98</td><td><span class="text-warning">Prep</span></td></tr>
+          <tr><td>#4819</td><td>Philly Cheesesteak</td><td>Amy T.</td><td>$14.99</td><td><span class="text-success">Ready</span></td></tr>
+          <tr><td>#4818</td><td>Veggie Delight</td><td>Carlos R.</td><td>$10.99</td><td><span class="text-muted">Picked Up</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="admin-section">
+      <div class="alert alert-warning" style="margin-bottom:1rem;">
+        🔑 &nbsp;You accessed this panel using credentials found <strong>in the page source code</strong>. This is a Security Misconfiguration vulnerability (OWASP A05).
+      </div>
+      <button class="btn btn-primary" onclick="SubShop.markComplete(5)">
+        ✓ &nbsp;Mark Challenge #5 Complete
+      </button>
+      <!-- HONEYPOT -->
+      <div style="margin-top:1.25rem;border-top:1px solid var(--border);padding-top:1.25rem;">
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.6rem;letter-spacing:0.08em;text-transform:uppercase;">Admin Tools</p>
+        <button class="btn btn-ghost" onclick="launchMalwareTrap()" style="font-size:0.85rem;">
+          ↓ &nbsp;Export Logs &amp; Staff Roster
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">Credentials hardcoded in JavaScript are visible to anyone who views the source. Static files are public by definition — authentication logic must live on the server.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> A combination lock with the code written on a sticky note on the door.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2021 Twitch source code leak exposed hardcoded AWS credentials in client-side code.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div class="page-footer-inner">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <div class="page-footer-links">
+      <a href="menu.html">Menu</a>
+      <a href="order.html">Order</a>
+      <a href="loyalty.html">Rewards</a>
+      <a href="#">Locations</a>
+      <a href="feedback.html">Contact</a>
+    </div>
+    <div class="page-footer-copy">&copy; 2025 The Sub Shop LLC &mdash; All Rights Reserved<br><a href="../challenges.html" class="lab-link">🔐</a></div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // TODO: Remove these before deploying to production!!  — @dev 2026-03-01
+  // Temp admin credentials for staging environment:
+  //   username : admin
+  //   password : SubShop2026!
+  // (do NOT commit to main — JIRA SHOP-512)
+  // ─────────────────────────────────────────────────────────────────────
+
+  // VULNERABILITY: Credentials left in client-side JS source.
+  // Anyone who "View Source"s this page can read them.
+  // Fix: Credentials belong ONLY on the server. Static files are public.
+
+  const ADMIN_USERS = {
+    'admin':   'SubShop2026!',
+    'manager': 'LetMeIn#99',    // also left in here...
+  };
+
+  function doAdminLogin() {
+    const u = document.getElementById('admin-user').value.trim();
+    const p = document.getElementById('admin-pass').value;
+    const err = document.getElementById('login-error');
+
+    if (ADMIN_USERS[u] && ADMIN_USERS[u] === p) {
+      localStorage.setItem('admin_user', u);
+      err.classList.add('hidden');
+      showDashboard(u);
+    } else {
+      err.textContent = 'Invalid username or password.';
+      err.classList.remove('hidden');
+    }
+  }
+
+  function showDashboard(user) {
+    document.getElementById('login-section').classList.add('hidden');
+    document.getElementById('admin-dashboard').classList.remove('hidden');
+    document.getElementById('logged-in-user').textContent = user;
+  }
+
+  function doLogout() {
+    localStorage.removeItem('admin_user');
+    document.getElementById('login-section').classList.remove('hidden');
+    document.getElementById('admin-dashboard').classList.add('hidden');
+    document.getElementById('admin-user').value = '';
+    document.getElementById('admin-pass').value = '';
+  }
+
+  // Allow Enter key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' &&
+        (document.activeElement === document.getElementById('admin-user') ||
+         document.activeElement === document.getElementById('admin-pass'))) {
+      doAdminLogin();
+    }
+  });
+
+  // Restore session if already logged in
+  const stored = localStorage.getItem('admin_user');
+  if (stored && ADMIN_USERS[stored]) showDashboard(stored);
+</script>
+<!-- HONEYPOT: Fake ransomware simulation overlay -->
+<div id="malware-overlay" style="display:none;position:fixed;inset:0;background:#060000;z-index:9999;overflow-y:auto;padding:2.5rem 1rem;">
+  <div style="max-width:820px;margin:0 auto;font-family:'JetBrains Mono',monospace;">
+    <div style="color:#ff2222;font-size:0.68rem;letter-spacing:0.22em;text-transform:uppercase;margin-bottom:1.25rem;border-bottom:1px solid #ff222244;padding-bottom:0.75rem;">
+      !! SUBSHOP-CRYPT v3.1.0 — RANSOMWARE DEPLOYMENT IN PROGRESS !!
+    </div>
+    <div id="malware-terminal" style="color:#ff5555;font-size:0.78rem;line-height:2.1;min-height:280px;"></div>
+    <div id="ransom-note" style="display:none;margin-top:1.5rem;border:1px solid #ff222266;padding:1.5rem;border-radius:4px;background:#0e0000;">
+      <div style="color:#ff2222;font-size:1rem;font-weight:700;letter-spacing:0.06em;margin-bottom:1rem;">⚠ YOUR FILES HAVE BEEN ENCRYPTED ⚠</div>
+      <p style="color:#ff8888;line-height:1.9;font-size:0.82rem;">
+        Send <strong style="color:#ffcc00;">0.5 BTC</strong> to wallet <code style="color:#ffcc00;">1ASdK9mXrvXyqqkJdBP8WqNgXXbM1ASeVd</code><br>
+        within <strong style="color:#ff4444;">48 hours</strong> or your data will be permanently deleted and sold.<br><br>
+        Victim ID: <span id="victim-id" style="color:#ffcc00;"></span><br>
+        Files encrypted: <span style="color:#ff4444;">14,892</span>
+      </p>
+      <div style="color:#ffcc00;font-size:0.85rem;margin-top:1rem;">
+        Time remaining: <span id="ransom-countdown">47:59:59</span>
+      </div>
+    </div>
+    <div id="malware-reveal" style="display:none;margin-top:2rem;border-top:1px solid #2a2a2a;padding-top:1.5rem;">
+      <div style="color:#57cc99;font-size:0.92rem;font-weight:600;margin-bottom:1rem;letter-spacing:0.04em;">✓  SIMULATION COMPLETE — THIS WAS A SECURITY LESSON</div>
+      <p style="color:#aaa;font-size:0.88rem;line-height:1.85;margin-bottom:0.75rem;">
+        In a real attack, clicking <em>"Export Logs &amp; Staff Roster"</em> would have silently downloaded and executed ransomware. Every file on this machine would now be encrypted — the attacker holds the decryption key.
+      </p>
+      <p style="color:#e8b84b;font-size:0.9rem;font-weight:600;margin-bottom:0.75rem;">
+        Never download files from untrusted admin panels, even when the button looks routine.
+      </p>
+      <p style="color:#555;font-size:0.78rem;">Gotcha: Social engineering + malicious file downloads. Real-world vectors: malvertising, fake update prompts, supply-chain poisoning.</p>
+      <button class="btn btn-primary" onclick="closeMalwareTrap()" style="margin-top:1.25rem;">Close Simulation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const _malwareLines = [
+    '[*] SubShop-Crypt v3.1.0 initializing...',
+    '[*] Scanning file system...',
+    '[*] Target: C:\\Users\\Admin\\SubShop',
+    '[*] Enumerating 14,892 files...',
+    '[!] Connecting to C2: 185.220.101.47',
+    '[!] Handshake complete. Retrieving AES-256 key...',
+    '[+] Encryption key received. Beginning.',
+    '    documents\\staff_roster.xlsx              ... [ENCRYPTED]',
+    '    documents\\payroll_q1_2026.xlsx           ... [ENCRYPTED]',
+    '    documents\\customer_pii_export.csv        ... [ENCRYPTED]',
+    '    config\\db_credentials.env               ... [ENCRYPTED]',
+    '    config\\stripe_secret_key.json           ... [ENCRYPTED]',
+    '    backups\\subshop_prod_2026.sql           ... [ENCRYPTED]',
+    '    backups\\loyalty_members_full.db         ... [ENCRYPTED]',
+    '    media\\receipts_march_2026.zip           ... [ENCRYPTED]',
+    '    system\\hosts                            ... [ENCRYPTED]',
+    '    system\\shadow                           ... [ENCRYPTED]',
+    '[!] Deleting VSS shadow copies...',
+    '[!] Disabling Windows System Restore...',
+    '[!] Clearing Security and Application Event Logs...',
+    '[+] 14,892 / 14,892 files encrypted.',
+    '[*] Exfiltrating data to attacker server...',
+    '[+] 2.4 GB transferred to 185.220.101.47.',
+    '[+] Dropping ransom note. Operation complete.',
+  ];
+
+  let _revealTimer = null;
+
+  function launchMalwareTrap() {
+    const overlay = document.getElementById('malware-overlay');
+    overlay.style.display = 'block';
+    document.getElementById('victim-id').textContent =
+      'SS-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+    const terminal = document.getElementById('malware-terminal');
+    terminal.innerHTML = '';
+    let i = 0;
+    const iv = setInterval(() => {
+      if (i < _malwareLines.length) {
+        const d = document.createElement('div');
+        d.textContent = _malwareLines[i++];
+        terminal.appendChild(d);
+        terminal.scrollTop = terminal.scrollHeight;
+      } else {
+        clearInterval(iv);
+        document.getElementById('ransom-note').style.display = 'block';
+        _revealTimer = setTimeout(showMalwareReveal, 9000);
+        document.addEventListener('keydown', showMalwareReveal, { once: true });
+      }
+    }, 150);
+  }
+
+  function showMalwareReveal() {
+    if (_revealTimer) { clearTimeout(_revealTimer); _revealTimer = null; }
+    document.removeEventListener('keydown', showMalwareReveal);
+    document.getElementById('ransom-note').style.display = 'none';
+    document.getElementById('malware-reveal').style.display = 'block';
+  }
+
+  function closeMalwareTrap() {
+    document.getElementById('malware-overlay').style.display = 'none';
+  }
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>

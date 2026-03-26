@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity Logs — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body data-challenge="a09-logs">
+
+<!-- HINT: Look at what raw data was logged from the feedback form. PII is stored unredacted. -->
+<!-- OWASP: A09 - Security Logging & Monitoring Failures -->
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html">Order</a></li>
+    <li><a href="loyalty.html">Rewards</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Staff Portal</a></li>
+    <li><a href="../challenges.html">Challenges</a></li>
+  </ul>
+  <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+</nav>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A09">
+  <span class="learn-tag">OWASP A09</span>
+  <strong>Security Logging &amp; Monitoring Failures</strong>
+  <span>"When logs store raw user input without redaction, PII accumulates silently."</span>
+</div>
+
+<div class="container">
+  <div class="page-header">
+    <div class="owasp-badge">A09 · Logging Dashboard</div>
+    <h1>Activity Logs</h1>
+    <p>Internal log viewer — displays all recorded activity and submitted feedback.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> This page fetches all entries from the server's log table.</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> Go to the Feedback page and submit something with a fake credit card number or SSN.</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> Come back here and check if the sensitive data you entered is visible in the logs — unredacted.</div>
+      <div class="hint-item hidden"><span class="hint-num">4.</span> Try entering HTML in the filter box below — the filter uses <code>innerHTML</code>.</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">1. Visit Feedback and submit: name "John", email "john@test.com", payment reference "4111-1111-1111-1111". 2. Return here — the log table shows the raw credit card number. 3. The filter input also renders via innerHTML, so entering <code>&lt;img src=x onerror=alert(1)&gt;</code> triggers XSS.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h2 style="margin:0;">Log Entries</h2>
+      <button class="btn btn-ghost" id="refresh-btn">↻ Refresh</button>
+    </div>
+
+    <div class="form-group" style="margin-bottom:1rem;">
+      <label>Filter logs</label>
+      <input type="text" id="filter-input" placeholder="Type to filter…" autocomplete="off">
+    </div>
+
+    <div id="filter-status" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;"></div>
+    <div id="logs-table-area"><p style="color:var(--text-muted);font-size:0.85rem;">Loading logs…</p></div>
+  </div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">If the app logs raw user input without redacting PII, sensitive data — credit card numbers, SSNs, passwords — accumulates silently in the log table. Anyone with access to the logs sees everything.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> A security camera that records everything including people's PIN entries at the ATM.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2017 Uber breach — logs contained unredacted credentials and PII for 57 million users and drivers.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="../challenges.html">← Challenge Board</a>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  let allLogs = [];
+
+  document.getElementById('refresh-btn').addEventListener('click', loadLogs);
+  document.getElementById('filter-input').addEventListener('input', applyFilter);
+
+  loadLogs();
+
+  async function loadLogs() {
+    const area = document.getElementById('logs-table-area');
+    try {
+      const resp = await fetch('/api/logs');
+      allLogs = await resp.json();
+
+      if (!Array.isArray(allLogs) || allLogs.length === 0) {
+        area.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">No log entries yet. Try submitting something on the <a href="feedback.html">Feedback</a> page first.</p>';
+        return;
+      }
+      renderTable(allLogs);
+    } catch (err) {
+      area.innerHTML = '<p style="color:var(--danger);font-size:0.85rem;">Failed to load logs: ' + escHtml(err.message) + '</p>';
+    }
+  }
+
+  function applyFilter() {
+    const term = document.getElementById('filter-input').value;
+    const statusEl = document.getElementById('filter-status');
+
+    // VULNERABLE: filter status rendered via innerHTML — XSS vector
+    statusEl.innerHTML = term ? 'Filtering for: <strong>' + term + '</strong>' : '';  // VULNERABLE: innerHTML with user input
+
+    if (!term) {
+      renderTable(allLogs);
+      return;
+    }
+    const lower = term.toLowerCase();
+    const filtered = allLogs.filter(row =>
+      Object.values(row).some(v => String(v).toLowerCase().includes(lower))
+    );
+    renderTable(filtered);
+  }
+
+  function renderTable(rows) {
+    const area = document.getElementById('logs-table-area');
+    if (!rows.length) {
+      area.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">No matching entries.</p>';
+      return;
+    }
+    const cols = ['id', 'action', 'user_input', 'timestamp'];
+    let html = '<table class="data-table"><thead><tr>';
+    cols.forEach(c => { html += '<th>' + escHtml(c) + '</th>'; });
+    html += '</tr></thead><tbody>';
+    rows.forEach(row => {
+      html += '<tr>';
+      cols.forEach(c => {
+        const val = String(row[c] ?? '');
+        // Highlight PII patterns (credit cards, SSNs) in red
+        const hasPii = /\b\d{3}-\d{2}-\d{4}\b/.test(val) || /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/.test(val);
+        const style = hasPii ? ' style="color:var(--danger);font-weight:600;"' : '';
+        html += '<td' + style + '>' + escHtml(val) + '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.35rem;text-align:right;">' + rows.length + ' entry(ies)</div>';
+    area.innerHTML = html;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+</script>
+</body>
+</html>

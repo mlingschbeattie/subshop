@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Sub Shop — OWASP Top 10 Training Lab</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/breach-report.css">
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="pages/menu.html">Menu</a></li>
+    <li><a href="pages/order.html">Order</a></li>
+    <li><a href="pages/loyalty.html">Rewards</a></li>
+    <li><a href="pages/cart.html">Cart</a></li>
+    <li><a href="scorecard.html">Scorecard</a></li>
+    <li><a href="pages/instructor.html">Instructor</a></li>
+  </ul>
+  <button id="learn-toggle" title="Toggle Learn Mode">🎓 Learn</button>
+</nav>
+
+<section class="hero">
+  <div class="hero-tag">OWASP Top 10 · Security Training Lab</div>
+  <h1>THE <em>SUB</em> SHOP</h1>
+  <p>
+    A deliberately vulnerable web app. Each page hides a real, exploitable security flaw.
+    Find them, exploit them, document them on your scorecard.
+  </p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+    <a href="#challenges" class="btn btn-primary">View Challenges</a>
+    <a href="scorecard.html" class="btn btn-ghost">Open Scorecard</a>
+  </div>
+  <!-- Photo credit: dev@subshop.internal | Sub Shop Media Team 2026       -->
+  <!-- Curious? Not everything is visible on screen. Images can hold secrets.     -->
+  <!-- Try: python -c "from PIL import Image; img=Image.open('assets/subhero.png'); print(img.info)" -->
+  <!-- Or:  exiftool assets/subhero.png                                          -->
+  <div class="hero-mascot-row">
+    <img src="assets/submascot.png" alt="The Sub Shop mascot">
+  </div>
+  <img src="assets/subhero.png" alt="The Sub Shop — Fresh Subs Daily" class="hero-img">
+</section>
+
+<div class="container">
+
+  <!-- Progress Bar -->
+  <div id="progress-section" style="margin-bottom:1.5rem;">
+    <div class="stats-row">
+      <div class="stat">
+        <span class="stat-num" id="stat-completed">0</span>
+        <span class="stat-label">Completed</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="stat-total">13</span>
+        <span class="stat-label">Total</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="stat-pct">0%</span>
+        <span class="stat-label">Progress</span>
+      </div>
+    </div>
+    <div class="score-bar">
+      <div class="score-fill" id="score-fill" style="width:0%"></div>
+    </div>
+    <p style="margin-top:0.75rem;font-size:0.75rem;color:var(--text-muted);">
+      Progress is saved in your browser's localStorage.
+      <button onclick="SubShop.resetProgress()" style="background:none;border:none;color:var(--danger);font-size:0.75rem;cursor:pointer;text-decoration:underline;font-family:inherit;">Reset</button>
+    </p>
+  </div>
+
+  <!-- Challenge Board — Module View -->
+  <div id="challenges">
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.06em;margin-bottom:0.25rem;">Learning Modules</h2>
+    <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:0;">Complete each module to unlock the next. Each module targets a security theme.</p>
+  </div>
+
+  <div class="module-board" id="module-board">
+    <!-- Module cards injected by JS -->
+  </div>
+
+  <!-- Legacy grid for fallback -->
+  <div class="challenge-grid hidden" id="challenge-grid">
+    <!-- Cards injected by JS -->
+  </div>
+
+  <!-- Promo Banner -->
+  <a href="pages/menu.html" class="promo-banner" title="See our menu">
+    <img src="assets/subadvert.png" alt="The Sub Shop — Check out our latest deals">
+  </a>
+
+  <!-- Viral Video 
+  <div class="video-section panel">
+    <h2>As Seen Online 🔥</h2>
+    <video controls playsinline preload="metadata">
+      <source src="assets/Flex_on_em.mp4" type="video/mp4">
+      Your browser does not support video playback.
+    </video>
+  </div> -->
+
+  <!-- How to Play -->
+  <div class="panel" style="margin-top:1rem;">
+    <h2>How to Play</h2>
+    <ol style="padding-left:1.25rem;color:var(--text-muted);font-size:0.88rem;line-height:2;">
+      <li>Visit a challenge page — it looks like a real sub shop feature.</li>
+      <li>Open <strong style="color:var(--text);">DevTools</strong> (F12) and explore: Sources, Console, Application, Network.</li>
+      <li>Look for hints in <strong style="color:var(--text);">HTML comments</strong> and <strong style="color:var(--text);">JS comments</strong> in the page source.</li>
+      <li>Exploit the vulnerability — each one is achievable from the browser alone.</li>
+      <li>Document your findings on the <a href="scorecard.html">Scorecard</a>.</li>
+    </ol>
+    <div style="margin-top:1rem;padding:0.85rem;background:var(--surface-2);border-radius:var(--radius);font-size:0.82rem;color:var(--text-muted);">
+      <strong style="color:var(--text);">Tools you'll need:</strong>
+      Browser DevTools (F12) — Inspect Element · Console · Application tab · Network tab · View Page Source (Ctrl+U)
+    </div>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; For educational use only &bull;
+  <a href="scorecard.html">Open Scorecard →</a>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/modules.js"></script>
+<script src="js/breach-report.js"></script>
+<script src="js/fix-it.js"></script>
+<script src="js/onboarding.js"></script>
+<script src="js/learn-mode.js"></script>
+<script src="js/hint-tokens.js"></script>
+<script>
+// Module Board Rendering
+(function () {
+  function renderModuleBoard() {
+    const board = document.getElementById('module-board');
+    if (!board || !window.Modules) return;
+    board.innerHTML = '';
+
+    const completed = Modules.getCompletedChallenges();
+    const fixes = JSON.parse(localStorage.getItem('fixBadges') || '[]');
+
+    Modules.MODULES.forEach((mod, idx) => {
+      const unlocked = Modules.isModuleUnlocked(mod.id);
+      const complete = Modules.isModuleComplete(mod.id);
+      const progress = Modules.getModuleProgress(mod.id);
+
+      // Connector arrow between modules
+      if (idx > 0) {
+        const conn = document.createElement('div');
+        conn.className = 'module-connector';
+        board.appendChild(conn);
+      }
+
+      const card = document.createElement('div');
+      card.className = 'module-card' + (complete ? ' complete' : '') + (!unlocked ? ' locked' : '');
+      card.dataset.module = mod.id;
+
+      const challengeListHTML = mod.challenges.map(chId => {
+        const info = Modules.getChallengeInfo(chId);
+        if (!info) return '';
+        const isSolved = completed.includes(chId);
+        const hasFix = fixes.includes(chId);
+        const quality = window.HintTokens ? HintTokens.getSolveQuality(chId) : null;
+        return `<a href="${info.page}" class="module-challenge-card${isSolved ? ' solved' : ''}">
+          <div class="module-challenge-info">
+            <div class="module-challenge-name">${info.name}${hasFix ? ' 🔧' : ''}</div>
+            <div class="module-challenge-sub">${info.sub}</div>
+            ${isSolved && quality ? `<div class="module-challenge-quality">${quality.icon} ${quality.label}</div>` : ''}
+          </div>
+          <div class="module-challenge-owasp">${info.owasp}</div>
+        </a>`;
+      }).join('');
+
+      card.innerHTML = `
+        <div class="module-card-header">
+          <div class="module-num" style="color:${mod.color}">M${idx + 1}</div>
+          <div class="module-info">
+            <div class="module-title">${mod.title}</div>
+            <div class="module-subtitle">${mod.subtitle}</div>
+          </div>
+          <div class="module-status">
+            ${unlocked ? `
+              <div class="module-progress-text">${progress.done}/${progress.total} ${complete ? 'complete ✅' : 'in progress'}</div>
+              <div class="module-progress-bar">
+                <div class="module-progress-fill" style="width:${(progress.done/progress.total)*100}%;background:${mod.color}"></div>
+              </div>
+            ` : `
+              <div class="module-lock">🔒 Complete M${idx} to unlock</div>
+            `}
+          </div>
+        </div>
+        <div class="module-challenges">
+          <div class="module-challenges-inner">
+            ${unlocked ? challengeListHTML : `<div style="padding:1rem;color:#555;font-size:0.85rem;">Complete the previous module to access these challenges.</div>`}
+          </div>
+        </div>
+      `;
+
+      if (unlocked) {
+        card.querySelector('.module-card-header').addEventListener('click', () => {
+          card.classList.toggle('expanded');
+        });
+      }
+
+      board.appendChild(card);
+    });
+
+    // Also update stats
+    _updateStats();
+  }
+
+  window.renderModuleBoard = renderModuleBoard;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('module-board')) {
+      renderModuleBoard();
+    }
+  });
+})();
+</script>
+<!-- Board rendering and stats are handled by main.js (_renderBoard / _updateStats) -->
+</body>
+</html>

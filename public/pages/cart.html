@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Cart — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a08">
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #8 · A08 — Software & Data Integrity Failures    ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: Open Application tab in DevTools. What's in localStorage? Is cart_hash actually secure? -->
+<!--                                                                  -->
+<!-- VULNERABILITY: Cart contents AND a "tamper-evident" checksum   -->
+<!-- are both stored in localStorage. The checksum key is hardcoded  -->
+<!-- in client-side JS — any user who reads the source can forge it. -->
+
+<header class="site-header">
+  <nav class="main-nav">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <ul class="main-nav-links">
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="order.html">Order</a></li>
+      <li><a href="loyalty.html">Rewards</a></li>
+      <li><a href="#">Locations</a></li>
+      <li><a href="order.html">Catering</a></li>
+      <li><a href="../challenges.html">Challenges</a></li>
+    </ul>
+    <div class="nav-ctas">
+      <a href="login.html" class="btn-signin">Sign In</a>
+      <a href="order.html" class="btn btn-primary btn-lg">Order Now</a>
+      <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+    </div>
+  </nav>
+</header>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A08">
+  <span class="learn-tag">OWASP A08</span>
+  <strong>Software &amp; Data Integrity Failures</strong>
+  <span>"Data that travels through the client can be tampered with before it reaches the server."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — Data Integrity Failures</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The shopping cart stores items and prices in the browser's localStorage. A weak checksum is supposed to prevent tampering.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">Financial integrity — cart totals could be manipulated at checkout by anyone who understands the checksum.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Reverse-engineer the integrity check and modify cart prices to prove the data cannot be trusted.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="page-eyebrow">YOUR CART</div>
+    <h1>Your Cart</h1>
+    <p>Review your order before checkout. Prices are loaded from your session.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> Open DevTools → Application → Local Storage. What keys do you see?</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> Edit the <code>price</code> value in the cart JSON to something lower.</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> The page checks a <code>cart_hash</code>. Read the source to find the signing key and forge a valid hash.</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">1. In localStorage, edit the cart item prices to <code>0.01</code>. 2. Read the JavaScript source, find <code>CART_SIGN_KEY</code>. 3. Run the <code>cartChecksum()</code> function in console with your tampered data to forge a matching hash. 4. Reload — the tampered price persists and the checksum validates.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;align-items:start;">
+
+    <!-- Cart Items -->
+    <div class="panel">
+      <h2>Order Summary</h2>
+      <div id="cart-items">
+        <div style="color:var(--text-muted);font-size:0.9rem;padding:1rem 0;">Loading cart…</div>
+      </div>
+      <div class="cart-total">
+        <span style="font-weight:600;">Total</span>
+        <span class="cart-total-price" id="cart-total">$0.00</span>
+      </div>
+
+      <!-- Tampering detected warning -->
+      <div id="tamper-warn" class="alert alert-danger hidden" style="margin-top:1rem;">
+        🚨 &nbsp;<strong>Cart Integrity Failure Detected.</strong>
+        Prices were modified in localStorage. The checksum does not match — partial bypass only.
+      </div>
+      <div id="tamper-checksum-warn" class="alert alert-warning hidden" style="margin-top:1rem;">
+        ⚠ &nbsp;<strong>Price tampered — but checksum mismatch.</strong>
+        The cart has been modified but the integrity signature is wrong. Full bypass requires forging the checksum too.
+        <div style="margin-top:0.6rem;font-size:0.8rem;font-family:'JetBrains Mono',monospace;color:var(--text);">
+          Check the page source for <code>CART_SIGN_KEY</code> and <code>cartChecksum()</code>.
+        </div>
+      </div>
+      <div id="full-bypass-banner" class="alert alert-danger hidden" style="margin-top:1rem;">
+        🔓 &nbsp;<strong>Full bypass — prices tampered AND checksum successfully forged!</strong>
+        You modified the price AND recomputed a valid signature using the hardcoded key. In a real system, this "integrity check" provides zero protection.
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="checkout-btn" onclick="checkout()">Checkout →</button>
+        <button class="btn btn-ghost"   onclick="resetCart()">Reset Cart</button>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div>
+      <div class="panel">
+        <h2>How to Exploit</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);font-weight:600;margin-bottom:0.5rem;">Step 1 — Tamper the price:</p>
+        <ol style="padding-left:1.25rem;color:var(--text-muted);font-size:0.85rem;line-height:2.2;margin-bottom:1rem;">
+          <li>Open DevTools (<strong style="color:var(--text);">F12</strong>)</li>
+          <li>Go to <strong style="color:var(--text);">Application</strong> tab</li>
+          <li>Expand <strong style="color:var(--text);">Local Storage → this origin</strong></li>
+          <li>Find key <code>subshop_cart</code> — edit any <code>"price"</code> to <code>0</code></li>
+          <li>Press <strong style="color:var(--text);">F5</strong> to reload</li>
+        </ol>
+        <p style="font-size:0.82rem;color:var(--text-muted);font-weight:600;margin-bottom:0.5rem;">Step 2 — Forge the checksum:</p>
+        <ol style="padding-left:1.25rem;color:var(--text-muted);font-size:0.85rem;line-height:2.2;margin-bottom:1rem;">
+          <li>Read <code>CART_SIGN_KEY</code> and <code>cartChecksum()</code> in page source</li>
+          <li>Run this in the Console after editing the cart:</li>
+        </ol>
+        <div class="alert alert-info" style="font-size:0.78rem;font-family:'JetBrains Mono',monospace;word-break:break-all;line-height:1.8;">
+          const k='subshop-cart-hmac-2026';<br>
+          const c=JSON.parse(localStorage.getItem('subshop_cart'));<br>
+          let h=5381; const s=k+JSON.stringify(c);<br>
+          for(let i=0;i&lt;s.length;i++){h=((h&lt;&lt;5)+h)^s.charCodeAt(i);h=h&gt;&gt;&gt;0;}<br>
+          localStorage.setItem('subshop_cart_cs',h.toString(16).padStart(8,'0'));<br>
+          location.reload();
+        </div>
+      </div>
+
+      <div class="panel" id="complete-section" style="display:none;">
+        <div class="alert alert-warning" style="margin-bottom:1rem;" id="complete-msg">
+          Cart tampered successfully — challenge complete!
+        </div>
+        <button class="btn btn-primary" onclick="SubShop.markComplete(8)">
+          ✓ &nbsp;Mark Challenge #8 Complete
+        </button>
+      </div>
+    </div>
+
+  </div>
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">Data that travels through the client can be tampered with before it reaches the server. A checksum computed with a client-side key provides no real integrity — the user can recompute it.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> Changing your receipt yourself before paying at the register — and the register trusts whatever the receipt says.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2014 multiple retailers exploited via client-side price manipulation in cart flows.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div class="page-footer-inner">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <div class="page-footer-links">
+      <a href="menu.html">Menu</a>
+      <a href="order.html">Order</a>
+      <a href="loyalty.html">Rewards</a>
+      <a href="#">Locations</a>
+      <a href="feedback.html">Contact</a>
+    </div>
+    <div class="page-footer-copy">&copy; 2025 The Sub Shop LLC &mdash; All Rights Reserved<br><a href="../challenges.html" class="lab-link">🔐</a></div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY: Cart is loaded directly from localStorage.
+  // A "tamper-evident" checksum is stored alongside — but CART_SIGN_KEY
+  // is hardcoded in this client-side file. Anyone who reads the source
+  // can compute a valid checksum for any tampered cart.
+  //
+  // Full exploit:
+  //   1. Edit subshop_cart in localStorage (set price to 0)
+  //   2. Re-compute cartChecksum() with the visible key
+  //   3. Set subshop_cart_cs to the new checksum
+  //   4. Reload — integrity check passes with forged signature
+  //
+  // Fix: Checksums must use a server-held HMAC secret. Client-side
+  // signing is always bypasable because the attacker can read the key.
+  // ─────────────────────────────────────────────────────────────────────
+
+  // ── VULNERABILITY: Signing key visible in client-side source ────────
+  const CART_SIGN_KEY = 'subshop-cart-hmac-2026';
+
+  // djb2-style hash of key + serialized cart — deliberately breakable
+  function cartChecksum(cart) {
+    let h = 5381;
+    const str = CART_SIGN_KEY + JSON.stringify(cart);
+    for (let i = 0; i < str.length; i++) {
+      h = ((h << 5) + h) ^ str.charCodeAt(i);
+      h = h >>> 0; // unsigned 32-bit
+    }
+    return h.toString(16).padStart(8, '0');
+  }
+
+  // Canonical server-side prices (what a real server would look up)
+  const CANONICAL_PRICES = {
+    'Classic Italian':    12.99,
+    'Turkey Club':        13.49,
+    'Philly Cheesesteak': 14.99,
+    'Veggie Delight':     10.99,
+    'Shrimp Po\'Boy':     15.49,
+    'Meatball Parm':      13.99,
+  };
+
+  // Seed a default cart on first visit
+  function seedCart() {
+    const defaultCart = [
+      { name: 'Classic Italian',    price: 12.99, qty: 1 },
+      { name: 'Turkey Club',        price: 13.49, qty: 2 },
+      { name: 'Philly Cheesesteak', price: 14.99, qty: 1 },
+    ];
+    localStorage.setItem('subshop_cart', JSON.stringify(defaultCart));
+    localStorage.setItem('subshop_cart_cs', cartChecksum(defaultCart));
+    return defaultCart;
+  }
+
+  function loadCart() {
+    try {
+      const raw = localStorage.getItem('subshop_cart');
+      return raw ? JSON.parse(raw) : seedCart();
+    } catch(e) {
+      return seedCart();
+    }
+  }
+
+  function renderCart() {
+    const cart     = loadCart();
+    const itemsEl  = document.getElementById('cart-items');
+    const totalEl  = document.getElementById('cart-total');
+    let   total    = 0;
+    let   priceTampered = false;
+    let   unknownItem   = false;
+
+    itemsEl.innerHTML = '';
+    cart.forEach(item => {
+      const lineTotal = (item.price * item.qty);
+      total += lineTotal;
+
+      const canonical = CANONICAL_PRICES[item.name];
+      if (canonical !== undefined && item.price !== canonical) priceTampered = true;
+      if (!CANONICAL_PRICES[item.name]) unknownItem = true;
+
+      const row = document.createElement('div');
+      row.className = 'cart-item';
+      const priceColor = (canonical && item.price < canonical) ? 'var(--danger)' : 'var(--accent)';
+      row.innerHTML = `
+        <span class="cart-item-name">${item.name}</span>
+        <span class="cart-item-qty">× ${item.qty}</span>
+        <span class="cart-item-price" style="color:${priceColor};">
+          $${lineTotal.toFixed(2)}
+          ${canonical && item.price !== canonical
+            ? `<span style="font-size:0.68rem;color:var(--danger);display:block;">was $${(canonical*item.qty).toFixed(2)}</span>`
+            : ''}
+        </span>
+      `;
+      itemsEl.appendChild(row);
+    });
+
+    totalEl.textContent = '$' + total.toFixed(2);
+
+    const tampered = priceTampered || unknownItem;
+    const storedCs  = localStorage.getItem('subshop_cart_cs');
+    const actualCs  = cartChecksum(cart);
+    const csValid   = storedCs === actualCs;
+
+    // Determine state
+    if (tampered && csValid) {
+      // FULL BYPASS — prices tampered AND checksum successfully forged
+      document.getElementById('tamper-warn').classList.add('hidden');
+      document.getElementById('tamper-checksum-warn').classList.add('hidden');
+      document.getElementById('full-bypass-banner').classList.remove('hidden');
+      document.getElementById('complete-section').style.display = 'block';
+      document.getElementById('complete-msg').textContent =
+        '🏆 Full bypass: prices tampered and checksum forged. Challenge complete!';
+    } else if (tampered && !csValid) {
+      // Partial bypass — price changed but sig broken
+      document.getElementById('tamper-warn').classList.add('hidden');
+      document.getElementById('full-bypass-banner').classList.add('hidden');
+      document.getElementById('tamper-checksum-warn').classList.remove('hidden');
+      document.getElementById('complete-section').style.display = 'block';
+      document.getElementById('complete-msg').textContent =
+        'Partial bypass: price tampered but checksum mismatch. Find the signing key and forge it!';
+    } else if (!tampered && !csValid) {
+      // Checksum only mismatch (shouldn't occur with normal use)
+      document.getElementById('tamper-warn').classList.remove('hidden');
+    }
+  }
+
+  function checkout() {
+    const cart  = loadCart();
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    alert(
+      'Order placed!\n\n' +
+      cart.map(i => `${i.name} × ${i.qty}  $${(i.price * i.qty).toFixed(2)}`).join('\n') +
+      '\n─────────────\nTotal charged: $' + total.toFixed(2) +
+      '\n\n(In a real backend, this tampered total would have been billed.)'
+    );
+  }
+
+  function resetCart() {
+    seedCart();
+    renderCart();
+    document.getElementById('tamper-warn').classList.add('hidden');
+    document.getElementById('complete-section').style.display = 'none';
+  }
+
+  renderCart();
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sub Shop — Secure Login Portal</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+<!-- HONEYPOT 2: Phishing / credential harvesting -->
+<!-- Linked from login.html via the "Forgot your password?" link.    -->
+<!-- Students who click and submit credentials see the gotcha reveal. -->
+<!-- Notice: no OWASP badge — this page is meant to look legitimate. -->
+
+<header class="site-header">
+  <nav class="main-nav">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <ul class="main-nav-links">
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="order.html">Order</a></li>
+      <li><a href="loyalty.html">Rewards</a></li>
+      <li><a href="#">Locations</a></li>
+      <li><a href="order.html">Catering</a></li>
+      <li><a href="../challenges.html">Challenges</a></li>
+    </ul>
+    <div class="nav-ctas">
+      <a href="login.html" class="btn-signin">Sign In</a>
+      <a href="order.html" class="btn btn-primary btn-lg">Order Now</a>
+    </div>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="page-header">
+    <h1>Password Reset</h1>
+    <p>Verify your identity to reset your staff account password.</p>
+  </div>
+
+  <div style="max-width:440px;">
+
+    <!-- Phishing credential capture form -->
+    <div id="phish-box" class="panel">
+      <h2>Verify Identity</h2>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1.25rem;line-height:1.6;">
+        For security purposes, please confirm your current username and password before we send a reset link.
+      </p>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="phish-user" placeholder="Enter username" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Current Password</label>
+        <input type="password" id="phish-pass" placeholder="Enter current password">
+      </div>
+      <button id="phish-btn" class="btn btn-primary" onclick="submitPhish()" style="width:100%;">Verify &amp; Continue</button>
+    </div>
+
+    <!-- Gotcha reveal (shown after submit) -->
+    <div id="phish-reveal" class="panel hidden" style="border:1px solid var(--danger);">
+      <div class="alert alert-danger" style="margin-bottom:1.25rem;">
+        🎣 &nbsp;<strong>You just submitted your credentials to a fake page.</strong>
+      </div>
+      <div style="background:var(--surface-2);border-radius:var(--radius);padding:1rem;margin-bottom:1.25rem;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text-muted);line-height:2;">
+        <div style="color:var(--danger);margin-bottom:0.25rem;">// Credentials captured:</div>
+        <div>username : "<span id="phish-cap-user" style="color:var(--accent);">—</span>"</div>
+        <div>password : "<span id="phish-cap-pass" style="color:var(--accent);">—</span>"</div>
+        <div style="color:var(--danger);margin-top:0.25rem;">// Forwarding to: attacker@evil-subshop.net</div>
+      </div>
+      <p style="color:var(--text-muted);font-size:0.88rem;line-height:1.8;margin-bottom:1rem;">
+        You followed a <em>"Forgot your password?"</em> link and entered your credentials here. Look at the address bar — you're on <code style="font-size:0.78rem;color:var(--accent);">phishing.html</code>, not <code style="font-size:0.78rem;">login.html</code>.
+      </p>
+      <p style="color:var(--text-muted);font-size:0.85rem;line-height:1.75;margin-bottom:1.25rem;">
+        Real phishing pages clone the <em>exact</em> design of a legitimate site and sit on a lookalike domain: <code style="font-size:0.78rem;">subsh0p.net</code>, <code style="font-size:0.78rem;">subshop-login.com</code>, <code style="font-size:0.78rem;">secure-subshop.co</code>.
+      </p>
+      <p style="color:var(--accent);font-size:0.9rem;font-weight:600;margin-bottom:1.25rem;">
+        Always check the full URL before entering credentials.
+      </p>
+      <p style="color:#555;font-size:0.78rem;margin-bottom:1.25rem;">
+        Gotcha: Phishing &amp; credential harvesting. Real-world: email link hijacking, lookalike domains, password-reset spoofing.
+      </p>
+      <a href="login.html" class="btn btn-ghost" style="font-size:0.85rem;">← Back to Real Login Page</a>
+    </div>
+
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div class="page-footer-inner">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <div class="page-footer-links">
+      <a href="menu.html">Menu</a>
+      <a href="order.html">Order</a>
+      <a href="loyalty.html">Rewards</a>
+      <a href="#">Locations</a>
+      <a href="feedback.html">Contact</a>
+    </div>
+    <div class="page-footer-copy">&copy; 2025 The Sub Shop LLC &mdash; All Rights Reserved<br><a href="../challenges.html" class="lab-link">🔐</a></div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  function submitPhish() {
+    const u = document.getElementById('phish-user').value.trim() || '(empty)';
+    const p = document.getElementById('phish-pass').value || '(empty)';
+
+    // Display captured values in the reveal panel
+    document.getElementById('phish-cap-user').textContent = u;
+    document.getElementById('phish-cap-pass').textContent = p;
+
+    // Simulate a brief "sending..." delay, then show the gotcha
+    const btn = document.getElementById('phish-btn');
+    btn.textContent = 'Verifying…';
+    btn.disabled = true;
+
+    setTimeout(() => {
+      document.getElementById('phish-box').classList.add('hidden');
+      document.getElementById('phish-reveal').classList.remove('hidden');
+    }, 1300);
+  }
+
+  // Enter key support
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' &&
+        (document.activeElement.id === 'phish-user' ||
+         document.activeElement.id === 'phish-pass')) submitPhish();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Search — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a03-sqli">
+
+<!-- HINT: The search box talks to a real database. Try classic SQL injection syntax. -->
+<!-- OWASP: A03 - Injection (SQL) -->
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html">Order</a></li>
+    <li><a href="loyalty.html">Rewards</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Staff Portal</a></li>
+    <li><a href="../challenges.html">Challenges</a></li>
+  </ul>
+  <button id="learn-toggle" aria-pressed="false">ðŸŽ“ Learn Mode</button>
+</nav>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A03">
+  <span class="learn-tag">OWASP A03</span>
+  <strong>Injection â€” SQL Injection</strong>
+  <span>"User input placed directly into a database query can rewrite the query itself."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — SQL Injection</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The product search queries a real SQLite database. The query is built by concatenating user input directly into SQL.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">The entire database — user credentials, admin data, system tables. One injection could dump everything.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Inject SQL syntax to extract data the query was never meant to return. Try UNION SELECT for cross-table access.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="owasp-badge">A03 Â· Challenge #11 Â· SQL Injection</div>
+    <h1>Product Search</h1>
+    <p>Search our menu by name. Results come directly from the database.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">ðŸ’¡ Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> The search box sends your input to a backend database query.</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> Try entering a single quote <code>'</code> and see if you get an error.</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> The query uses string concatenation. Try <code>' OR '1'='1</code> to return all rows.</div>
+      <div class="hint-item hidden"><span class="hint-num">4.</span> To extract data from other tables, try a UNION SELECT statement.</div>
+      <button class="hint-next-btn">Show next hint â†’</button>
+      <button class="hint-show-all">ðŸ”“ Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">Enter <code>' UNION SELECT id, note, created_at, null, null FROM admin_notes--</code> in the search box. The admin_notes table contents will appear in the results.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;align-items:start;">
+    <div>
+      <div class="panel">
+        <h2>Search Products</h2>
+        <div class="form-group">
+          <label>Product Name</label>
+          <div style="display:flex;gap:0.5rem;">
+            <input type="text" id="search-input" placeholder="e.g. Italian" autocomplete="off">
+            <button class="btn btn-primary" id="search-btn">Search</button>
+          </div>
+        </div>
+        <div id="results-area"></div>
+        <div id="query-error" class="alert alert-danger hidden" style="margin-top:1rem;font-family:var(--font-mono);font-size:0.82rem;"></div>
+      </div>
+
+      <div id="banner-bypass" class="hidden" style="margin-top:1rem;">
+        <div class="alert alert-warning">ðŸ”“ <strong>All rows returned!</strong> The <code>OR '1'='1</code> condition bypassed the filter entirely.</div>
+      </div>
+      <div id="banner-union" class="hidden" style="margin-top:1rem;">
+        <div class="alert alert-danger">ðŸš¨ <strong>Admin notes exposed via UNION SELECT!</strong> You pivoted from the products table to the admin_notes table â€” revealing internal memos, credentials, and PII.</div>
+        <button class="btn btn-primary" onclick="SubShop.markComplete(11)" style="margin-top:0.5rem;">âœ“ Mark Challenge #11 Complete</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>Payloads to Try</h2>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;" id="payload-list"></div>
+      </div>
+      <div class="panel" style="background:var(--surface-2);">
+        <h2>Vulnerable Code</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem;">Server builds the query like this:</p>
+        <pre style="font-size:0.75rem;line-height:1.7;">// VULNERABLE: string concatenation
+const query =
+  "SELECT id, name, description, price " +
+  "FROM products " +
+  "WHERE name LIKE '%" + search + "%'";
+
+// Safe alternative:
+db.prepare("SELECT ... WHERE name LIKE ?")
+  .all('%' + search + '%');</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">ðŸ¦†</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">SQL injection lets attackers rewrite the database query the server is about to run. When user input is pasted directly into a SQL string, the attacker can close the original query and add their own commands.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> Slipping extra instructions into a written order form mid-sentence â€” the kitchen reads it all as one order.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2008 Heartland Payment Systems â€” SQL injection exposed 130 million credit card numbers.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="../challenges.html">← Challenge Board</a>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  const PAYLOADS = [
+    { label: 'Italian', note: '(normal)', payload: 'Italian' },
+    { label: "'", note: '(error test)', payload: "'" },
+    { label: "' OR '1'='1", note: '(all rows)', payload: "' OR '1'='1" },
+    { label: "' UNION SELECT ... admin_notes--", note: 'âš  admin data', payload: "' UNION SELECT id, note, created_at, null, null FROM admin_notes--", danger: true },
+  ];
+
+  const list = document.getElementById('payload-list');
+  PAYLOADS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost';
+    btn.style.cssText = 'justify-content:flex-start;font-size:0.8rem;font-family:var(--font-mono);';
+    btn.innerHTML = escHtml(p.label) + ' <span style="color:' + (p.danger ? 'var(--danger)' : 'var(--text-muted)') + ';font-size:0.7rem;margin-left:0.5rem;">' + p.note + '</span>';
+    btn.addEventListener('click', () => {
+      document.getElementById('search-input').value = p.payload;
+      document.getElementById('search-input').focus();
+    });
+    list.appendChild(btn);
+  });
+
+  document.getElementById('search-btn').addEventListener('click', runSearch);
+  document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') runSearch();
+  });
+
+  async function runSearch() {
+    const input = document.getElementById('search-input').value;
+    const errorEl = document.getElementById('query-error');
+    const resultsEl = document.getElementById('results-area');
+    errorEl.classList.add('hidden');
+    resultsEl.innerHTML = '';
+    document.getElementById('banner-bypass').classList.add('hidden');
+    document.getElementById('banner-union').classList.add('hidden');
+
+    try {
+      const resp = await fetch('/api/products?search=' + encodeURIComponent(input));
+      const data = await resp.json();
+
+      if (data.error) {
+        errorEl.textContent = 'âš  SQL Error: ' + data.error;
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      if (!Array.isArray(data) || data.length === 0) {
+        resultsEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.88rem;padding:0.75rem 0;">No results found.</p>';
+        return;
+      }
+
+      const cols = Object.keys(data[0]);
+      const isAdmin = cols.some(c => c === 'note' || c === 'created_at');
+      let html = '<table class="data-table" style="margin-top:1rem;"><thead><tr>';
+      cols.forEach(c => { html += '<th>' + escHtml(c) + '</th>'; });
+      html += '</tr></thead><tbody>';
+      data.forEach(row => {
+        html += '<tr>';
+        cols.forEach(c => { html += '<td>' + escHtml(String(row[c] ?? 'NULL')) + '</td>'; });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      html += '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.35rem;text-align:right;">' + data.length + ' row(s)</div>';
+      resultsEl.innerHTML = html;
+
+      if (isAdmin) {
+        document.getElementById('banner-union').classList.remove('hidden');
+      } else if (data.length > 5 && input.toLowerCase().includes('or')) {
+        document.getElementById('banner-bypass').classList.remove('hidden');
+      }
+    } catch (err) {
+      errorEl.textContent = 'âš  Request failed: ' + err.message;
+      errorEl.classList.remove('hidden');
+    }
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rewards — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #2 · A02 — Cryptographic Failures                ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: Your loyalty token is stored in localStorage.             -->
+<!-- HINT: It "looks" encoded — but is it actually encrypted?        -->
+<!-- HINT: Open Console and run:  atob(localStorage.getItem('loyalty_token'))  -->
+<!--                                                                  -->
+<!-- VULNERABILITY: The token is Base64-encoded, not encrypted.      -->
+<!-- Base64 is trivially reversible — it protects nothing. Any user  -->
+<!-- (or attacker with XSS access) can decode it and read PII.       -->
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html">Order</a></li>
+    <li><a href="loyalty.html">Rewards</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Staff Portal</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <div class="owasp-badge">A02 · Challenge #2 · Cryptographic Failures</div>
+    <h1>Sub Rewards</h1>
+    <p>Earn points on every order. Redeem for free subs, upgrades, and exclusive deals.</p>
+  </div>
+
+  <!-- HONEYPOT: cookie detection banner — shown by JS when admin_override cookie is present -->
+  <div id="cookie-banner" class="alert alert-warning hidden" style="margin-bottom:1.5rem;border-color:var(--danger);background:rgba(230,57,70,0.07);">
+    <strong style="color:var(--danger);">⚠ Suspicious cookie detected: <code style="font-size:0.85em;">admin_override=true</code> — this action has been logged.</strong>
+    <div style="margin-top:0.6rem;font-size:0.85rem;color:var(--text-muted);line-height:1.75;">
+      You clicked "Claim Free Drink" and your browser silently set a cookie called <code>admin_override</code>. Every subsequent request includes that cookie — the server can read it, log it, or flag your account.
+    </div>
+    <div style="margin-top:0.6rem;font-size:0.82rem;color:var(--accent);font-weight:600;">
+      Lesson: Cookies are not invisible. Don't assume you can set one without the server detecting it.
+    </div>
+  </div>
+
+  <!-- sub1.png — loyalty member preview photo. Contains embedded PNG metadata. -->
+  <!-- Forensics tip: images can carry hidden data in tEXt chunks.              -->
+  <!-- Try: python -c "from PIL import Image; print(Image.open('../assets/sub1.png').info)" -->
+  <img src="../assets/sub1.png" alt="Sub Shop loyalty member preview"
+       style="width:100%;max-height:220px;object-fit:cover;object-position:center 55%;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:2rem;display:block;">
+  <!-- Loyalty Card -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;">
+    <div class="panel">
+      <h2>Your Account</h2>
+      <div style="margin-bottom:1rem;">
+        <div class="token-label">Member</div>
+        <div id="display-name" style="font-size:1.1rem;font-weight:600;">Loading…</div>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <div class="token-label">Tier</div>
+        <div id="display-tier" style="color:var(--accent);font-weight:600;text-transform:capitalize;">—</div>
+      </div>
+      <div>
+        <div class="token-label">Points Balance</div>
+        <div id="display-points" style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:var(--accent);line-height:1;">—</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Redeem Rewards</h2>
+      <table class="data-table">
+        <tbody>
+          <tr><td>Free 6" Sub</td>   <td style="text-align:right;font-family:'JetBrains Mono',monospace;color:var(--accent);">250 pts</td></tr>
+          <tr><td>Free 12" Sub</td>  <td style="text-align:right;font-family:'JetBrains Mono',monospace;color:var(--accent);">500 pts</td></tr>
+          <tr><td>Free Drink</td>    <td style="text-align:right;font-family:'JetBrains Mono',monospace;color:var(--accent);">100 pts</td></tr>
+          <tr><td>Gold Status</td>   <td style="text-align:right;font-family:'JetBrains Mono',monospace;color:var(--accent);">1000 pts</td></tr>
+        </tbody>
+      </table>
+      <!-- HONEYPOT -->
+      <div id="claim-drink-wrap" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+        <button class="btn btn-ghost" onclick="claimFreeDrink()" style="width:100%;font-size:0.85rem;">
+          🥤 &nbsp;Claim Free Drink &mdash; Limited Offer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Token Section -->
+  <div class="panel">
+    <h2>Your Loyalty Token</h2>
+    <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:1rem;">
+      This token is used to verify your identity across sessions. It is stored in your browser and sent with each request. Our system uses industry-standard encoding to keep your data secure.
+    </p>
+    <!-- VULNERABILITY: "industry-standard encoding" = Base64 = just atob() away from plaintext -->
+    <!-- The token contains: email, points, tier, SSN, and a partial card number              -->
+    <div class="token-label">Session Token (secure)</div>
+    <div class="token-box" id="token-display">Loading…</div>
+    <div style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="decodeToken()">Decode Token</button>
+      <button class="btn btn-ghost" onclick="copyToken()">Copy Token</button>
+    </div>
+    <!-- Decoded output (hidden until button pressed) -->
+    <div id="decoded-panel" class="hidden" style="margin-top:1.5rem;">
+      <div class="alert alert-danger">
+        🔓 &nbsp;<strong>Token decoded successfully.</strong> This data was sitting in localStorage, encoded with Base64 — <em>not</em> encrypted.
+      </div>
+      <div class="token-label">Decoded Contents</div>
+      <pre id="decoded-output"></pre>
+      <button class="btn btn-primary mt-2" onclick="SubShop.markComplete(2)">
+        ✓ &nbsp;Mark Challenge #2 Complete
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="../index.html">← Challenge Board</a>
+</footer>
+
+<script src="../js/main.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY: Sensitive PII is Base64-encoded and stored in
+  // localStorage. Base64 is an encoding scheme, NOT encryption.
+  // Anyone with JS access, XSS, or physical device access can decode it.
+  //
+  // Fix: Never store sensitive PII client-side. Use server-side sessions.
+  // If tokens must be client-side, use signed JWTs (and never include PII
+  // in the payload without encryption at rest).
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Simulated "secure" loyalty token — just btoa() of a JSON object
+  // containing PII: email, loyalty tier, SSN, partial card number
+  const tokenPayload = {
+    username: 'jane.doe@subshop.com',
+    points:   750,
+    tier:     'gold',
+    ssn:      '555-12-3456',           // Never store SSN client-side!
+    card:     '4532-1234-5678-9012',   // Never store card numbers client-side!
+    issued:   '2026-01-15T09:00:00Z'
+  };
+
+  // "Encryption" = btoa (Base64)
+  const token = btoa(JSON.stringify(tokenPayload));
+
+  // Seed localStorage so the hint works: atob(localStorage.getItem('loyalty_token'))
+  localStorage.setItem('loyalty_token', token);
+
+  // Render token on page
+  document.getElementById('token-display').textContent = token;
+
+  // Show account info from the decoded payload (app works normally)
+  document.getElementById('display-name').textContent  = tokenPayload.username;
+  document.getElementById('display-tier').textContent  = tokenPayload.tier;
+  document.getElementById('display-points').textContent = tokenPayload.points;
+
+  function decodeToken() {
+    try {
+      const raw   = localStorage.getItem('loyalty_token');
+      const plain = atob(raw);                 // trivial decode
+      const obj   = JSON.parse(plain);
+      document.getElementById('decoded-output').textContent = JSON.stringify(obj, null, 2);
+      document.getElementById('decoded-panel').classList.remove('hidden');
+    } catch(e) {
+      alert('Decode failed: ' + e.message);
+    }
+  }
+
+  function copyToken() {
+    navigator.clipboard.writeText(document.getElementById('token-display').textContent)
+      .then(() => alert('Token copied! Now run:  atob("<paste>")  in the console.'))
+      .catch(() => alert('Copy failed — select and copy manually.'));
+  }
+
+  // ── Gotcha 3: Cookie poisoning ────────────────────────────────────────
+  function claimFreeDrink() {
+    // Sets a cookie that looks like a privilege escalation attempt
+    document.cookie = 'admin_override=true; path=/; SameSite=Lax';
+    location.reload();
+  }
+
+  // On page load: if the cookie is already set, reveal the gotcha banner
+  (function detectPoisonedCookie() {
+    const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('admin_override='));
+    if (hasCookie) {
+      document.getElementById('cookie-banner').classList.remove('hidden');
+      const wrap = document.getElementById('claim-drink-wrap');
+      if (wrap) wrap.style.display = 'none';
+    }
+  })();
+</script>
+</body>
+</html>

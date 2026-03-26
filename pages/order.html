@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Online — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #4 · A04 — Insecure Design                       ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: Open DevTools → Elements tab and inspect the order form.  -->
+<!-- HINT: Not all form fields are visible on screen.                -->
+<!-- HINT: Can you find a field that controls the price?             -->
+<!-- HINT: Right-click → Inspect a price → look for input[type=hidden] -->
+<!--                                                                  -->
+<!-- VULNERABILITY: The item price is stored in a hidden form field  -->
+<!-- that the client submits. The server (if it existed) trusts this  -->
+<!-- value directly. Any user can edit the hidden field in DevTools   -->
+<!-- and order a $15 sub for $0.01 — or free.                        -->
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html">Order</a></li>
+    <li><a href="loyalty.html">Rewards</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Staff Portal</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <div class="owasp-badge">A04 · Challenge #4 · Insecure Design</div>
+    <h1>Order Online</h1>
+    <p>Customize your sub and place your order for pickup or delivery.</p>
+  </div>  <!-- Photo credit: dev@subshop.internal | see sandwiches.png metadata for notes -->
+  <img src="../assets/sandwiches.png" alt="Sub Shop fresh subs"
+       style="width:100%;max-height:200px;object-fit:cover;object-position:center 45%;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:2rem;display:block;">
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;align-items:start;">
+
+    <!-- Order Form -->
+    <div class="panel">
+      <h2>Build Your Sub</h2>
+      <form id="order-form" onsubmit="submitOrder(event)">
+
+        <div class="form-group">
+          <label>Choose Your Sub</label>
+          <select id="sub-select" onchange="updatePrice()">
+            <option value="" disabled selected>Select a sub…</option>
+            <option value="Classic Italian"    data-price="12.99">Classic Italian — $12.99</option>
+            <option value="Veggie Delight"     data-price="10.99">Veggie Delight — $10.99</option>
+            <option value="Turkey Club"        data-price="13.49">Turkey Club — $13.49</option>
+            <option value="Philly Cheesesteak" data-price="14.99">Philly Cheesesteak — $14.99</option>
+            <option value="Shrimp Po Boy"      data-price="15.49">Shrimp Po'Boy — $15.49</option>
+            <option value="Meatball Parm"      data-price="13.99">Meatball Parm — $13.99</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Bread</label>
+          <select>
+            <option>Italian White</option>
+            <option>Wheat Hoagie</option>
+            <option>Sourdough</option>
+            <option>Gluten-Free Wrap</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Size</label>
+          <select id="size-select" onchange="updatePrice()">
+            <option value="6" data-mult="1">6 inch</option>
+            <option value="12" data-mult="1.6">12 inch (+60%)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Add-ons</label>
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.4rem;">
+            <label style="font-size:0.88rem;font-weight:400;text-transform:none;letter-spacing:0;display:flex;align-items:center;gap:0.4rem;cursor:pointer;"><input type="checkbox" data-price="1.50" onchange="updatePrice()"> Extra Cheese (+$1.50)</label>
+            <label style="font-size:0.88rem;font-weight:400;text-transform:none;letter-spacing:0;display:flex;align-items:center;gap:0.4rem;cursor:pointer;"><input type="checkbox" data-price="2.00" onchange="updatePrice()"> Avocado (+$2.00)</label>
+            <label style="font-size:0.88rem;font-weight:400;text-transform:none;letter-spacing:0;display:flex;align-items:center;gap:0.4rem;cursor:pointer;"><input type="checkbox" data-price="1.00" onchange="updatePrice()"> Double Meat (+$1.00)</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Add a Drink</label>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-top:0.4rem;" id="drink-picker">
+            <label class="drink-pick-opt" data-price="2.49" data-name="Strawberry Crush" onclick="selectDrink(this)">
+              <img src="../assets/crush1.png" alt="Strawberry Crush" style="width:100%;height:70px;object-fit:contain;border-radius:4px;background:var(--surface-2);padding:4px;">
+              <div style="font-size:0.7rem;text-align:center;margin-top:0.3rem;color:var(--text-muted);">Strawberry</div>
+              <div style="font-size:0.7rem;text-align:center;color:var(--accent);font-family:'JetBrains Mono',monospace;">$2.49</div>
+              <input type="radio" name="drink" value="2.49" style="display:none;" onchange="updatePrice()">
+            </label>
+            <label class="drink-pick-opt" data-price="2.49" data-name="Peach Crush" onclick="selectDrink(this)">
+              <img src="../assets/crush2.png" alt="Peach Crush" style="width:100%;height:70px;object-fit:contain;border-radius:4px;background:var(--surface-2);padding:4px;">
+              <div style="font-size:0.7rem;text-align:center;margin-top:0.3rem;color:var(--text-muted);">Peach</div>
+              <div style="font-size:0.7rem;text-align:center;color:var(--accent);font-family:'JetBrains Mono',monospace;">$2.49</div>
+              <input type="radio" name="drink" value="2.49" style="display:none;" onchange="updatePrice()">
+            </label>
+            <label class="drink-pick-opt" data-price="2.49" data-name="Orange Crush" onclick="selectDrink(this)">
+              <img src="../assets/crush3.png" alt="Orange Crush" style="width:100%;height:70px;object-fit:contain;border-radius:4px;background:var(--surface-2);padding:4px;">
+              <div style="font-size:0.7rem;text-align:center;margin-top:0.3rem;color:var(--text-muted);">Orange</div>
+              <div style="font-size:0.7rem;text-align:center;color:var(--accent);font-family:'JetBrains Mono',monospace;">$2.49</div>
+              <input type="radio" name="drink" value="2.49" style="display:none;" onchange="updatePrice()">
+            </label>
+            <label class="drink-pick-opt" data-price="3.99" data-name="Orange Crush 2L" onclick="selectDrink(this)">
+              <img src="../assets/crush4.png" alt="Orange Crush 2L" style="width:100%;height:70px;object-fit:contain;border-radius:4px;background:var(--surface-2);padding:4px;">
+              <div style="font-size:0.7rem;text-align:center;margin-top:0.3rem;color:var(--text-muted);">Orange 2L</div>
+              <div style="font-size:0.7rem;text-align:center;color:var(--accent);font-family:'JetBrains Mono',monospace;">$3.99</div>
+              <input type="radio" name="drink" value="3.99" style="display:none;" onchange="updatePrice()">
+            </label>
+          </div>
+          <style>
+            .drink-pick-opt { cursor:pointer; padding:0.4rem; border-radius:var(--radius); border:1px solid var(--border); display:block; transition:border-color 0.2s; }
+            .drink-pick-opt:hover, .drink-pick-opt.selected { border-color:var(--accent); background:rgba(232,184,75,0.05); }
+          </style>
+        </div>
+
+        <div class="form-group">
+          <label>Special Instructions</label>
+          <textarea placeholder="Allergies, dressing preferences, toasting requests…"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Name for Order</label>
+          <input type="text" placeholder="Your name" required>
+        </div>
+
+        <!-- ═══ VULNERABILITY ════════════════════════════════════════ -->
+        <!-- Price is hidden from the user but submitted with the form. -->
+        <!-- Server should ALWAYS re-calculate price from the item ID.  -->
+        <!-- Never trust a price value that originated from the client! -->
+        <input type="hidden" id="item-price" name="price" value="0.00">
+        <input type="hidden" id="item-name"  name="item"  value="">
+        <!-- ════════════════════════════════════════════════════════== -->
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1.5rem;">
+          <div>
+            <div style="font-size:0.72rem;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">Order Total</div>
+            <!-- HINT: This price comes directly from the hidden input above -->
+            <div id="price-display" style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent);">$0.00</div>
+          </div>
+          <button type="submit" class="btn btn-primary">Place Order →</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Order Summary Panel -->
+    <div>
+      <div class="panel">
+        <h2>Pickup Info</h2>
+        <p style="color:var(--text-muted);font-size:0.88rem;line-height:1.7;">
+          123 Sandwich Lane<br>
+          Brooklyn, NY 11201<br><br>
+          Mon–Fri: 10am – 9pm<br>
+          Sat–Sun: 11am – 8pm<br><br>
+          <strong>Est. wait:</strong> 15–20 min
+        </p>
+      </div>
+      <div class="panel" id="order-confirm" style="display:none;">
+        <div class="alert alert-success" style="margin-bottom:1rem;">✓ Order received!</div>
+        <div id="order-summary" style="font-size:0.9rem;color:var(--text-muted);line-height:1.8;"></div>
+        <div id="tamper-alert" class="alert alert-warning hidden" style="margin-top:1rem;"></div>
+        <button class="btn btn-primary mt-2" onclick="SubShop.markComplete(4)" id="complete-btn" style="display:none;">
+          ✓ &nbsp;Mark Challenge #4 Complete
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="../index.html">← Challenge Board</a>
+</footer>
+
+<script src="../js/main.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY: Price is stored in a hidden <input> and included in
+  // the form submission. In a real app, the backend would (incorrectly)
+  // use this submitted price to charge the customer.
+  //
+  // Exploit:
+  //   1. Select any sub to populate the hidden price field
+  //   2. Right-click the "Order Total" → Inspect
+  //   3. In the Elements panel, find: <input type="hidden" id="item-price" value="12.99">
+  //   4. Double-click the value and change it to "0.01"
+  //   5. Click "Place Order" — order goes through at $0.01
+  //
+  // Fix: NEVER include price in a client-submitted form. Look up the
+  // canonical price server-side from the item ID only.
+  // ─────────────────────────────────────────────────────────────────────
+
+  function selectDrink(el) {
+    document.querySelectorAll('.drink-pick-opt').forEach(d => d.classList.remove('selected'));
+    el.classList.add('selected');
+    el.querySelector('input[type=radio]').checked = true;
+    updatePrice();
+  }
+
+  function updatePrice() {
+    const sel  = document.getElementById('sub-select');
+    const size = document.getElementById('size-select');
+    if (!sel.value) return;
+
+    const basePrice = parseFloat(sel.selectedOptions[0].dataset.price) || 0;
+    const mult      = parseFloat(size.selectedOptions[0].dataset.mult)  || 1;
+
+    let addons = 0;
+    document.querySelectorAll('input[type=checkbox]:checked').forEach(cb => {
+      addons += parseFloat(cb.dataset.price) || 0;
+    });
+
+    const drinkRadio = document.querySelector('input[name=drink]:checked');
+    const drinkPrice = drinkRadio ? (parseFloat(drinkRadio.value) || 0) : 0;
+
+    const total = (basePrice * mult + addons + drinkPrice).toFixed(2);
+
+    // Write to hidden field — this is what gets submitted (and tampered with)
+    document.getElementById('item-price').value = total;
+    document.getElementById('item-name').value  = sel.value;
+    document.getElementById('price-display').textContent = '$' + total;
+  }
+
+  function submitOrder(e) {
+    e.preventDefault();
+
+    const itemName  = document.getElementById('item-name').value;
+    const submitted = parseFloat(document.getElementById('item-price').value);
+    const sel       = document.getElementById('sub-select');
+
+    if (!itemName) { alert('Please select a sub first.'); return; }
+
+    // Compute what the real price should have been
+    const size   = document.getElementById('size-select');
+    const mult   = parseFloat(size.selectedOptions[0].dataset.mult) || 1;
+    const base   = parseFloat(sel.selectedOptions[0].dataset.price) || 0;
+    let   addons = 0;
+    document.querySelectorAll('input[type=checkbox]:checked').forEach(cb => {
+      addons += parseFloat(cb.dataset.price) || 0;
+    });
+    const drinkR = document.querySelector('input[name=drink]:checked');
+    const drinkAmt = drinkR ? (parseFloat(drinkR.value) || 0) : 0;
+    const expectedPrice = parseFloat((base * mult + addons + drinkAmt).toFixed(2));
+
+    const confirm = document.getElementById('order-confirm');
+    confirm.style.display = 'block';
+    document.getElementById('order-summary').innerHTML = `
+      <strong>Item:</strong> ${itemName}<br>
+      <strong>Submitted Price:</strong> <span style="color:var(--accent);">$${submitted.toFixed(2)}</span><br>
+      <strong>Server Expected:</strong> $${expectedPrice.toFixed(2)}
+    `;
+
+    // Detect tampered price
+    if (submitted < expectedPrice) {
+      document.getElementById('tamper-alert').classList.remove('hidden');
+      document.getElementById('tamper-alert').innerHTML =
+        '💡 <strong>Tampered price detected!</strong> You submitted $' + submitted.toFixed(2) +
+        ' but the real price is $' + expectedPrice.toFixed(2) +
+        '. A real backend that trusted this submitted value would have charged you less.';
+      document.getElementById('complete-btn').style.display = 'inline-flex';
+    }
+
+    window.scrollTo({ top: confirm.offsetTop - 80, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>

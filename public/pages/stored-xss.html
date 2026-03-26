@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reviews — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a03-stored-xss">
+
+<!-- HINT: Submit a review containing an HTML script tag. Reload the page. -->
+<!-- OWASP: A03 - Injection (Stored XSS) -->
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html">Order</a></li>
+    <li><a href="loyalty.html">Rewards</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Staff Portal</a></li>
+    <li><a href="../challenges.html">Challenges</a></li>
+  </ul>
+  <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+</nav>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A03">
+  <span class="learn-tag">OWASP A03</span>
+  <strong>Injection — Stored XSS</strong>
+  <span>"Stored XSS means the malicious script is saved server-side and runs for every visitor."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — Stored Cross-Site Scripting</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The review system stores user comments in the database and renders them for all visitors with no sanitization.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">Every future visitor — stored scripts execute automatically when anyone views the reviews page.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Submit a review containing JavaScript that executes when any user views the page. Prove the stored XSS vector.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="owasp-badge">A03 · Challenge #13 · Stored XSS</div>
+    <h1>Customer Reviews</h1>
+    <p>Read what others think — or leave your own review.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> Submit a review and watch how it appears on the page.</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> Try including HTML tags in your review — are they rendered or escaped?</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> The server stores your review exactly as submitted. The page renders it via <code>innerHTML</code>.</div>
+      <div class="hint-item hidden"><span class="hint-num">4.</span> Submit <code>&lt;img src=x onerror=alert('XSS')&gt;</code> as a review. Reload the page.</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">Submit a review with content like <code>&lt;script&gt;alert('XSS')&lt;/script&gt;</code> or <code>&lt;img src=x onerror=alert(document.cookie)&gt;</code>. The server stores it raw. When you reload the page, your payload runs in the browser because reviews are rendered with <code>innerHTML</code>.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;align-items:start;">
+    <div>
+      <!-- Existing Reviews -->
+      <div class="panel">
+        <h2>Recent Reviews</h2>
+        <div id="reviews-list"><p style="color:var(--text-muted);font-size:0.85rem;">Loading reviews…</p></div>
+      </div>
+
+      <!-- Success/alert banners -->
+      <div id="banner-xss" class="hidden" style="margin-top:1rem;">
+        <div class="alert alert-danger">
+          🚨 <strong>Stored XSS!</strong> Your injected HTML was saved to the database and rendered unsanitized. Every user who loads this page will execute your payload.
+        </div>
+        <button class="btn btn-primary" onclick="SubShop.markComplete(13)" style="margin-top:0.5rem;">✓ Mark Challenge #13 Complete</button>
+      </div>
+    </div>
+
+    <div>
+      <!-- Submit Review Form -->
+      <div class="panel">
+        <h2>Leave a Review</h2>
+        <div class="form-group">
+          <label>Your Name</label>
+          <input type="text" id="review-author" placeholder="e.g. Alex" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Review</label>
+          <textarea id="review-content" rows="4" placeholder="What did you think of our subs?"></textarea>
+        </div>
+        <button class="btn btn-primary" id="submit-review">Submit Review</button>
+        <div id="submit-status" style="margin-top:0.75rem;font-size:0.85rem;"></div>
+      </div>
+
+      <div class="panel" style="background:var(--surface-2);">
+        <h2>Payloads to Try</h2>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;" id="payload-list"></div>
+      </div>
+
+      <div class="panel" style="background:var(--surface-2);">
+        <h2>Vulnerable Code</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem;">Server stores raw HTML; client renders with innerHTML:</p>
+        <pre style="font-size:0.75rem;line-height:1.7;">// Server — stores raw HTML
+app.post('/api/review', (req, res) => {
+  db.prepare('INSERT INTO reviews ...')
+    .run(author, content); // VULNERABLE
+});
+
+// Client — renders raw
+reviews.forEach(r => {
+  div.innerHTML += r.content; // XSS!
+});
+
+// Safe alternative:
+div.textContent = r.content;</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">Stored XSS means the malicious script is saved in the database and runs for every user who loads the page. Unlike reflected XSS, the attacker doesn't need the victim to click a special link — just visiting the page is enough.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> Leaving a trap in the guestbook that activates every time someone reads it.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2018 British Airways — stored XSS used to exfiltrate 500K customer payment records over two weeks.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="../challenges.html">← Challenge Board</a>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  const PAYLOADS = [
+    { label: 'Great subs!', note: '(clean)', payload: 'Great subs! Loved the Italian.' },
+    { label: '<b>bold</b>', note: '(HTML test)', payload: '<b>This is bold</b>' },
+    { label: '<img src=x onerror=alert(1)>', note: '⚠ XSS', payload: '<img src=x onerror=alert("XSS")>', danger: true },
+    { label: '<script>alert(document.cookie)<\/script>', note: '⚠ cookie theft', payload: '<script>alert(document.cookie)<\/script>', danger: true },
+  ];
+
+  const list = document.getElementById('payload-list');
+  PAYLOADS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost';
+    btn.style.cssText = 'justify-content:flex-start;font-size:0.8rem;font-family:var(--font-mono);';
+    btn.innerHTML = escHtml(p.label) + ' <span style="color:' + (p.danger ? 'var(--danger)' : 'var(--text-muted)') + ';font-size:0.7rem;margin-left:0.5rem;">' + p.note + '</span>';
+    btn.addEventListener('click', () => {
+      document.getElementById('review-content').value = p.payload;
+      document.getElementById('review-content').focus();
+    });
+    list.appendChild(btn);
+  });
+
+  // Load existing reviews
+  loadReviews();
+
+  document.getElementById('submit-review').addEventListener('click', submitReview);
+
+  async function loadReviews() {
+    try {
+      const resp = await fetch('/api/reviews');
+      const reviews = await resp.json();
+      const container = document.getElementById('reviews-list');
+      if (!reviews.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">No reviews yet. Be the first!</p>';
+        return;
+      }
+      container.innerHTML = '';
+      reviews.forEach(r => {
+        const card = document.createElement('div');
+        card.style.cssText = 'padding:1rem;border:1px solid var(--border);border-radius:8px;margin-bottom:0.75rem;';
+        card.innerHTML =  // VULNERABLE: innerHTML renders stored HTML/scripts
+          '<div style="font-weight:600;margin-bottom:0.35rem;">' + (r.author || 'Anonymous') + '</div>' +
+          '<div style="font-size:0.88rem;color:var(--text-muted);line-height:1.6;">' + r.content + '</div>' +
+          '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.5rem;">' + (r.created_at || '') + '</div>';
+        container.appendChild(card);
+      });
+
+      // Detect if any review contains HTML tags (XSS indicator)
+      const hasXss = reviews.some(r => /<[^>]+>/.test(r.content));
+      if (hasXss) {
+        document.getElementById('banner-xss').classList.remove('hidden');
+      }
+    } catch (err) {
+      document.getElementById('reviews-list').innerHTML = '<p style="color:var(--danger);font-size:0.85rem;">Failed to load reviews.</p>';
+    }
+  }
+
+  async function submitReview() {
+    const author = document.getElementById('review-author').value.trim() || 'Anonymous';
+    const content = document.getElementById('review-content').value.trim();
+    const statusEl = document.getElementById('submit-status');
+
+    if (!content) {
+      statusEl.innerHTML = '<span style="color:var(--danger);">Please write a review.</span>';
+      return;
+    }
+
+    try {
+      const resp = await fetch('/api/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author, content })
+      });
+      const data = await resp.json();
+      statusEl.innerHTML = '<span style="color:var(--success);">✓ Review submitted!</span>';
+      document.getElementById('review-content').value = '';
+      document.getElementById('review-author').value = '';
+      // Reload reviews to show the new one (including any XSS payload)
+      setTimeout(loadReviews, 500);
+    } catch (err) {
+      statusEl.innerHTML = '<span style="color:var(--danger);">Submit failed: ' + escHtml(err.message) + '</span>';
+    }
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "freshsqueeze-sub-shop",
+  "version": "3.0.0",
+  "description": "FreshSqueeze Sub Shop — OWASP Top 10 Security Training Lab",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node db/seed.js",
+    "dev": "npm install && node db/seed.js && node --watch server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0"
+  }
+}

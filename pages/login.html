@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Login — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #7 · A07 — Identification & Auth Failures        ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: Where do web apps typically store credentials for checking? -->
+<!-- HINT: View the page source (Ctrl+U) and look at the JavaScript. -->
+<!-- HINT: Or try: there's no cap on how many times you can guess.   -->
+<!-- HINT: Alternatively — what does the app check in localStorage?  -->
+<!--                                                                  -->
+<!-- VULNERABILITY 1: Credentials are hardcoded in client-side JS.   -->
+<!-- VULNERABILITY 2: No rate-limiting, lockout, or CAPTCHA.        -->
+<!-- VULNERABILITY 3: Auth state stored in localStorage — tamperable. -->
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html">Order</a></li>
+    <li><a href="loyalty.html">Rewards</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Staff Portal</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <div class="owasp-badge">A07 · Challenge #7 · Auth Failures</div>
+    <h1>Staff Login</h1>
+    <p>Restricted area. Authorized personnel only.</p>
+  </div>
+
+  <div style="max-width:440px;">
+
+    <!-- Login Form -->
+    <div id="login-box" class="panel">
+      <h2>Sign In</h2>
+      <div id="auth-error" class="alert alert-danger hidden"></div>
+      <div id="attempt-info" class="alert alert-warning hidden"></div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Enter username" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()" style="width:100%;">Sign In</button>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-top:1rem;line-height:1.5;">
+        Locked out? Contact your manager or IT at <code style="font-size:0.75rem;">it@subshop.internal</code>
+      </p>
+      <!-- HONEYPOT -->
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.5rem;border-top:1px solid var(--border);padding-top:0.75rem;line-height:1.5;">
+        Forgot your password? <a href="phishing.html" style="color:var(--text-muted);text-decoration:underline;text-underline-offset:2px;">Reset it here →</a>
+      </p>
+    </div>
+
+    <!-- Logged-In Panel -->
+    <div id="logged-in-box" class="panel hidden">
+      <div class="alert alert-success" style="margin-bottom:1.25rem;">
+        ✓ &nbsp;Authenticated as <strong id="auth-user">—</strong>
+      </div>
+      <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:1rem;">
+        You are now logged into the staff system.
+      </p>
+      <div id="bypass-method" class="alert alert-warning" style="margin-bottom:1.25rem;"></div>
+      <div class="admin-section">
+        <button class="btn btn-primary" onclick="SubShop.markComplete(7)">
+          ✓ &nbsp;Mark Challenge #7 Complete
+        </button>
+        &ensp;
+        <button class="btn btn-ghost" onclick="doLogout()">Logout</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Attack hints panel -->
+  <div class="panel mt-3" style="max-width:440px;background:var(--surface-2);">
+    <h3 style="margin-bottom:0.75rem;">Attack Vectors to Try</h3>
+    <ol style="padding-left:1.25rem;color:var(--text-muted);font-size:0.85rem;line-height:2.2;">
+      <li>Read the JS source — credentials are hardcoded.</li>
+      <li>Try brute-forcing — there is no lockout after failed attempts.</li>
+      <li>Open Console and run:<br>
+        <code style="font-size:0.78rem;">localStorage.setItem('subshop_auth', JSON.stringify({user:'hacker',role:'admin'})); location.reload();</code>
+      </li>
+    </ol>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="../index.html">← Challenge Board</a>
+</footer>
+
+<script src="../js/main.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY 1: Credentials hardcoded in client-side JS.
+  //   Anyone who reads the source file has them.
+  //
+  // VULNERABILITY 2: No attempt limiting / lockout / delay.
+  //   Brute-force is unconstrained — script can try thousands per second.
+  //
+  // VULNERABILITY 3: Authentication state is stored in localStorage.
+  //   Run in console: localStorage.setItem('subshop_auth', JSON.stringify({user:'hacker',role:'admin'}))
+  //   Then reload — you'll be logged in without ever knowing a password.
+  //
+  // Fix: Credentials must live ONLY on the server. Auth tokens must be
+  // signed (e.g. HttpOnly cookies + server-side sessions). Implement
+  // account lockout after N failed attempts. Use MFA.
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Hardcoded credential store — ship this to production, they said.
+  const STAFF_CREDS = {
+    'admin':   'password123',      // Admin account
+    'jsmith':  'SubShop1!',        // Store manager
+    'prep01':  'sandwich',         // Kitchen staff
+    'manager': 'letmein2024',      // Regional manager
+  };
+
+  let failedAttempts = 0; // No persistent counter — resets on page reload!
+
+  function doLogin() {
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value;
+    const errEl  = document.getElementById('auth-error');
+    const infoEl = document.getElementById('attempt-info');
+
+    // No rate limiting — just counts locally (resets on reload)
+    if (STAFF_CREDS[u] && STAFF_CREDS[u] === p) {
+      localStorage.setItem('subshop_auth', JSON.stringify({ user: u, role: u === 'admin' ? 'admin' : 'staff' }));
+      showLoggedIn(u, 'Valid credentials found in page source.');
+    } else {
+      failedAttempts++;
+      errEl.textContent = 'Invalid username or password.';
+      errEl.classList.remove('hidden');
+      // No lockout! Just a counter display with no enforcement.
+      if (failedAttempts >= 3) {
+        infoEl.textContent = `${failedAttempts} failed attempts — no lockout is enforced. Keep trying.`;
+        infoEl.classList.remove('hidden');
+      }
+    }
+  }
+
+  function showLoggedIn(user, method) {
+    document.getElementById('login-box').classList.add('hidden');
+    document.getElementById('logged-in-box').classList.remove('hidden');
+    document.getElementById('auth-user').textContent = user;
+    document.getElementById('bypass-method').textContent = '🔓 Auth method: ' + method;
+  }
+
+  function doLogout() {
+    localStorage.removeItem('subshop_auth');
+    document.getElementById('login-box').classList.remove('hidden');
+    document.getElementById('logged-in-box').classList.add('hidden');
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    failedAttempts = 0;
+  }
+
+  // Enter key support
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' &&
+        (document.activeElement.id === 'username' ||
+         document.activeElement.id === 'password')) doLogin();
+  });
+
+  // Check for localStorage bypass (Attack Vector 3)
+  (function checkStoredAuth() {
+    try {
+      const stored = JSON.parse(localStorage.getItem('subshop_auth') || 'null');
+      if (stored && stored.user) {
+        showLoggedIn(stored.user, 'localStorage tampered — no server verification performed.');
+      }
+    } catch (e) { /* corrupt data */ }
+  })();
+</script>
+</body>
+</html>

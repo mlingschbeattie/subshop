@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scorecard — The Sub Shop Security Lab</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/breach-report.css">
+  <style>
+    .sc-meta { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:2rem; }
+    @media(max-width:600px){ .sc-meta { grid-template-columns:1fr; } }
+    @media print {
+      .site-nav, .site-footer, #save-bar, #instructor-panel, #learn-toggle { display:none !important; }
+      body { background:#fff; color:#000; }
+      .scorecard-section { border:1px solid #ccc; page-break-inside:avoid; }
+    }
+    /* Solved checkbox row */
+    .solved-row { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem; }
+    .solved-row input[type="checkbox"] { width:1.1rem; height:1.1rem; accent-color:var(--success); }
+    .solved-row label { font-weight:600; color:var(--text); font-size:0.88rem; }
+    /* Star rating */
+    .star-rating { display:flex; gap:0.25rem; }
+    .star-rating button { background:none; border:1px solid var(--border); padding:0.3rem 0.6rem; border-radius:var(--radius); cursor:pointer; font-size:0.78rem; color:var(--text-muted); font-family:var(--font-mono); transition:all 0.15s; }
+    .star-rating button:hover { border-color:var(--accent); color:var(--accent); }
+    .star-rating button.selected { background:var(--accent); color:#000; border-color:var(--accent); font-weight:700; }
+    /* Instructor panel */
+    #instructor-panel { background:var(--surface-2); border:1px solid var(--accent); border-radius:var(--radius); padding:1.25rem; margin-bottom:2rem; }
+    #instructor-panel h2 { color:var(--accent); font-family:var(--font-display); font-size:1.3rem; margin-bottom:0.5rem; }
+    #instructor-panel summary { cursor:pointer; font-weight:600; color:var(--accent); }
+    .import-table { width:100%; border-collapse:collapse; margin-top:1rem; font-size:0.82rem; }
+    .import-table th { text-align:left; padding:0.5rem; border-bottom:2px solid var(--accent); color:var(--accent); }
+    .import-table td { padding:0.5rem; border-bottom:1px solid var(--border); color:var(--text-muted); }
+    /* Pitfall section */
+    .pitfall-found { font-size:0.7rem; color:var(--success); margin-top:0.3rem; display:none; }
+    /* v4 — quality badges */
+    .quality-badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; padding:0.2rem 0.6rem; border-radius:12px; font-weight:600; }
+    .quality-gold { background:rgba(251,191,36,0.15); color:#fbbf24; }
+    .quality-silver { background:rgba(156,163,175,0.15); color:#9ca3af; }
+    .quality-bronze { background:rgba(217,119,6,0.15); color:#d97706; }
+    .quality-completed { background:rgba(74,222,128,0.1); color:#4ade80; }
+    .quality-assisted { background:rgba(239,68,68,0.1); color:#ef4444; }
+    .fix-badge { font-size:0.72rem; padding:0.2rem 0.5rem; border-radius:12px; background:rgba(74,222,128,0.1); color:#4ade80; display:inline-flex; gap:0.25rem; }
+    .module-header { font-size:0.9rem; font-weight:700; margin:2rem 0 0.75rem; padding:0.5rem 0; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:0.5rem; }
+    .module-header .mod-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+    .auto-fill-note { font-size:0.7rem; color:#f5a623; font-style:italic; margin-top:0.3rem; }
+  </style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="challenges.html">← Board</a></li>
+    <li><a href="pages/menu.html">Menu</a></li>
+    <li><a href="pages/order.html">Order</a></li>
+  </ul>
+  <button id="learn-toggle" title="Toggle Learn Mode">🎓 Learn</button>
+</nav>
+
+<div class="container">
+
+  <!-- Instructor Panel (hidden unless ?instructor=true) -->
+  <div id="instructor-panel" style="display:none;">
+    <details open>
+      <summary>Instructor View</summary>
+      <div style="margin-top:1rem;">
+        <div class="form-group" style="margin-bottom:0.75rem;">
+          <label>Class Code</label>
+          <input type="text" id="inst-class-code" placeholder="e.g. SEC-201-F25" style="max-width:220px;">
+        </div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
+          <button class="btn btn-primary" onclick="exportResults()">Export My Results (JSON)</button>
+          <label class="btn btn-ghost" style="cursor:pointer;">
+            Import Student Results
+            <input type="file" id="import-file" accept=".json" multiple style="display:none;" onchange="importResults(this.files)">
+          </label>
+        </div>
+        <div id="import-summary"></div>
+      </div>
+    </details>
+  </div>
+
+  <div class="page-header">
+    <div class="owasp-badge">TRAINING LAB · SCORECARD</div>
+    <h1>Security Findings Report</h1>
+    <p>Document each vulnerability you discovered — what it is, how you found it, and how you exploited it.</p>
+  </div>
+
+  <!-- Score Summary -->
+  <div class="score-summary panel" id="score-summary-panel">
+    <div class="score-chunk">
+      <div class="score-tally" id="sc-score">0</div>
+      <div class="score-desc">Challenges<br>Complete</div>
+    </div>
+    <div class="score-divider">/</div>
+    <div class="score-chunk">
+      <div class="score-tally" id="sc-total">13</div>
+      <div class="score-desc">Total<br>Challenges</div>
+    </div>
+    <div class="score-divider">+</div>
+    <div class="score-chunk">
+      <div class="score-tally" id="sc-bonus">0</div>
+      <div class="score-desc">Bonus<br>Pitfalls</div>
+    </div>
+    <div class="score-divider">/</div>
+    <div class="score-chunk">
+      <div class="score-tally">3</div>
+      <div class="score-desc">Hidden<br>Traps</div>
+    </div>
+  </div>
+
+  <!-- Student Info -->
+  <div class="panel">
+    <h2>Student Information</h2>
+    <div class="sc-meta">
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Name</label>
+        <input type="text" id="sc-name" placeholder="Your name">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Course / Class</label>
+        <input type="text" id="sc-course" placeholder="e.g. SEC-201">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Date</label>
+        <input type="date" id="sc-date">
+      </div>
+    </div>
+  </div>
+
+  <!-- Challenge Sections (generated by JS) -->
+  <div id="scorecard-sections"></div>
+
+  <!-- Honeypot / Gotcha section -->
+  <div class="panel" style="margin-top:2rem;" id="pitfall-section">
+    <h2 style="margin-bottom:0.4rem;">Bonus: Hidden Pitfalls</h2>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;line-height:1.7;">
+      The app contains a small number of undocumented traps — scenarios designed to catch careless or curious behavior.
+      If you stumbled into one (or found it deliberately), document what happened. <em>No further hints provided.</em>
+    </p>
+  </div>
+
+  <div id="pitfall-sections"></div>
+
+  <!-- Save Bar -->
+  <div id="save-bar" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;padding:1.5rem 0;">
+    <button class="btn btn-primary" onclick="calculateScore()">Calculate Score</button>
+    <button class="btn btn-ghost" onclick="window.print()">Print / Export PDF</button>
+    <button class="btn btn-ghost" onclick="exportHTMLReport()">📄 Export Security Report</button>
+    <button class="btn btn-ghost" onclick="resetScorecard()" style="margin-left:auto;color:var(--text-muted);">Reset All</button>
+    <span id="save-msg" style="font-size:0.82rem;color:var(--success);"></span>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="challenges.html">← Back to Challenge Board</a>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/modules.js"></script>
+<script src="js/hint-tokens.js"></script>
+<script src="js/learn-mode.js"></script>
+<script>
+  /* ──────────────────────────  FIELD DEFINITIONS  ────────────────────────── */
+  const DISCOVERY_METHODS = [
+    'Source Code / HTML Comments', 'DevTools Console', 'URL Manipulation',
+    'localStorage / Cookies', 'Network Tab', 'API / Server Response', 'Other'
+  ];
+  const ATTACK_VECTORS = ['Client-Side', 'API', 'Database', 'Server'];
+
+  /* ──────────────────────────  BUILD CHALLENGE SECTIONS  ──────────────── */
+  // v4: Challenge-to-string-ID map for quality/fix lookups
+  const CH_STR_MAP = {1:'a01',2:'a02',3:'a03-dom',4:'a04',5:'a05',6:'a06',7:'a07',8:'a08',9:'a09',10:'a10',11:'a03-sqli',12:'a01-idor',13:'a03-stored-xss'};
+
+  function buildSections() {
+    const container = document.getElementById('scorecard-sections');
+    const progress = SubShop.getProgress();
+    const completedChallenges = JSON.parse(localStorage.getItem('completedChallenges') || '[]');
+    const fixBadges = JSON.parse(localStorage.getItem('fixBadges') || '[]');
+
+    // v4: Group by modules if available
+    const modules = window.Modules ? Modules.MODULES : null;
+    const challengeOrder = [];
+
+    if (modules) {
+      modules.forEach((mod, idx) => {
+        challengeOrder.push({ type: 'module-header', mod, idx });
+        mod.challenges.forEach(chStrId => {
+          const numId = window.Modules ? Modules.CHALLENGE_ID_MAP[chStrId] : null;
+          const ch = numId ? SubShop.CHALLENGES.find(c => c.id === numId) : null;
+          if (ch) challengeOrder.push({ type: 'challenge', ch });
+        });
+      });
+    } else {
+      SubShop.CHALLENGES.forEach(ch => challengeOrder.push({ type: 'challenge', ch }));
+    }
+
+    challengeOrder.forEach(item => {
+      if (item.type === 'module-header') {
+        const hdr = document.createElement('div');
+        hdr.className = 'module-header';
+        hdr.innerHTML = `<span class="mod-dot" style="background:${item.mod.color}"></span> Module ${item.idx + 1}: ${item.mod.title}`;
+        container.appendChild(hdr);
+        return;
+      }
+
+      const ch = item.ch;
+      const done = !!progress[ch.id];
+      const strId = CH_STR_MAP[ch.id];
+      const hasFix = fixBadges.includes(strId);
+      const sec = document.createElement('div');
+      sec.className = 'scorecard-section';
+      sec.id = 'sc-ch-' + ch.id;
+
+      // v4: Quality badge
+      let qualityHtml = '';
+      if (completedChallenges.includes(strId) && window.HintTokens) {
+        const q = HintTokens.getSolveQuality(strId);
+        if (q) {
+          const clsMap = { 'Gold':'quality-gold', 'Silver':'quality-silver', 'Bronze':'quality-bronze', 'Completed':'quality-completed', 'Assisted':'quality-assisted' };
+          qualityHtml = `<span class="quality-badge ${clsMap[q.label] || 'quality-completed'}">${q.icon} ${q.label}</span>`;
+        }
+      }
+      const fixHtml = hasFix ? '<span class="fix-badge">🔧 Fixed</span>' : '';
+
+      const discoveryOpts = DISCOVERY_METHODS.map(m =>
+        '<option value="' + m + '">' + m + '</option>'
+      ).join('');
+
+      const vectorOpts = ATTACK_VECTORS.map(v =>
+        '<option value="' + v + '">' + v + '</option>'
+      ).join('');
+
+      sec.innerHTML = `
+        <div class="scorecard-header">
+          <span class="scorecard-num">${ch.id}</span>
+          <div>
+            <h3>${ch.name}</h3>
+            <div style="font-size:0.75rem;color:var(--text-muted);">${ch.sub}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="owasp-id" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--accent);">${ch.owasp}</div>
+            <span class="difficulty ${ch.difficulty}" style="margin-top:0.3rem;display:inline-block;">${ch.difficulty}</span>
+            ${done ? '<div style="font-size:0.7rem;color:var(--success);margin-top:0.3rem;">✓ Flagged</div>' : ''}
+            ${qualityHtml}
+            ${fixHtml}
+          </div>
+        </div>
+        <div class="scorecard-body">
+          <div class="solved-row">
+            <input type="checkbox" id="solved-${ch.id}" data-field="solved">
+            <label for="solved-${ch.id}">Solved</label>
+          </div>
+          <div class="form-group">
+            <label>Vulnerability found</label>
+            <input type="text" id="f-${ch.id}-vuln" data-field="vuln" placeholder="e.g. Broken Access Control">
+          </div>
+          <div class="form-group">
+            <label>How did you find it?</label>
+            <select id="f-${ch.id}-discovery" data-field="discovery">
+              <option value="">— select —</option>
+              ${discoveryOpts}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Attack vector</label>
+            <select id="f-${ch.id}-vector" data-field="vector">
+              <option value="">— select —</option>
+              ${vectorOpts}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>What did you exploit?</label>
+            <textarea id="f-${ch.id}-exploit" data-field="exploit" placeholder="Step-by-step: what did you do to demonstrate the vulnerability?"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Difficulty felt</label>
+            <div class="star-rating" id="rating-${ch.id}">
+              ${[1,2,3,4,5].map(n => `<button type="button" data-v="${n}">${'★'.repeat(n)}${'☆'.repeat(5-n)}</button>`).join('')}
+            </div>
+          </div>
+          <div class="form-group learn-only">
+            <label>What did you learn in your own words?</label>
+            <textarea id="f-${ch.id}-learned" data-field="learned" placeholder="Describe the takeaway in your own words…"></textarea>
+          </div>
+          <div class="solved-row learn-only">
+            <input type="checkbox" id="f-${ch.id}-learnmode" data-field="learnmode">
+            <label for="f-${ch.id}-learnmode">Completed in Learn Mode?</label>
+          </div>
+        </div>
+      `;
+      container.appendChild(sec);
+
+      // Star rating click
+      sec.querySelector('#rating-' + ch.id).addEventListener('click', e => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        sec.querySelectorAll('#rating-' + ch.id + ' button').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        autosave();
+      });
+    });
+  }
+
+  /* ──────────────────────────  BUILD PITFALL SECTIONS  ──────────────── */
+  function buildPitfalls() {
+    const container = document.getElementById('pitfall-sections');
+    [1, 2, 3].forEach(n => {
+      const sec = document.createElement('div');
+      sec.className = 'scorecard-section';
+      sec.style.marginBottom = '1rem';
+      sec.innerHTML = `
+        <div class="scorecard-header">
+          <span class="scorecard-num" style="background:var(--danger);color:#fff;">?</span>
+          <div>
+            <h3>Pitfall #${n}</h3>
+            <div style="font-size:0.75rem;color:var(--text-muted);">Hidden scenario — unlocked when triggered</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="owasp-id" style="color:var(--danger);">GOTCHA</div>
+            <div class="pitfall-found" id="hp-${n}-flag">✓ Found</div>
+          </div>
+        </div>
+        <div class="scorecard-body">
+          <div class="solved-row">
+            <input type="checkbox" id="hp-${n}-found" data-hp="${n}" data-field="found">
+            <label for="hp-${n}-found">Found it</label>
+          </div>
+          <div class="form-group">
+            <label>What triggered it?</label>
+            <textarea id="hp-${n}-trigger" data-hp="${n}" data-field="trigger" placeholder="Describe what you clicked, submitted, typed, or set..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>What was the lesson?</label>
+            <textarea id="hp-${n}-lesson" data-hp="${n}" data-field="lesson" placeholder="What did the reveal tell you? Why does this matter?"></textarea>
+          </div>
+        </div>
+      `;
+      container.appendChild(sec);
+    });
+  }
+
+  /* ──────────────────────────  AUTOSAVE (every input event)  ──────────── */
+  function collectData() {
+    const data = {
+      name:      document.getElementById('sc-name').value,
+      course:    document.getElementById('sc-course').value,
+      date:      document.getElementById('sc-date').value,
+      classCode: document.getElementById('inst-class-code').value,
+      challenges: {},
+      pitfalls:   {}
+    };
+
+    SubShop.CHALLENGES.forEach(ch => {
+      const entry = {
+        solved:    document.getElementById('solved-' + ch.id).checked,
+        vuln:      document.getElementById('f-' + ch.id + '-vuln').value,
+        discovery: document.getElementById('f-' + ch.id + '-discovery').value,
+        vector:    document.getElementById('f-' + ch.id + '-vector').value,
+        exploit:   document.getElementById('f-' + ch.id + '-exploit').value,
+        learned:   document.getElementById('f-' + ch.id + '-learned').value,
+        learnmode: document.getElementById('f-' + ch.id + '-learnmode').checked,
+      };
+      const sel = document.querySelector('#rating-' + ch.id + ' button.selected');
+      entry.rating = sel ? sel.dataset.v : '';
+      data.challenges[ch.id] = entry;
+    });
+
+    [1, 2, 3].forEach(n => {
+      data.pitfalls[n] = {
+        found:   document.getElementById('hp-' + n + '-found').checked,
+        trigger: document.getElementById('hp-' + n + '-trigger').value,
+        lesson:  document.getElementById('hp-' + n + '-lesson').value,
+      };
+    });
+
+    return data;
+  }
+
+  function autosave() {
+    localStorage.setItem('scorecard', JSON.stringify(collectData()));
+    updateScoreSummary();
+  }
+
+  /* ──────────────────────────  LOAD FROM LOCALSTORAGE  ──────────────── */
+  function loadScorecard() {
+    try {
+      const raw = localStorage.getItem('scorecard');
+      if (!raw) return;
+      const data = JSON.parse(raw);
+
+      if (data.name)      document.getElementById('sc-name').value      = data.name;
+      if (data.course)    document.getElementById('sc-course').value    = data.course;
+      if (data.date)      document.getElementById('sc-date').value      = data.date;
+      if (data.classCode) document.getElementById('inst-class-code').value = data.classCode;
+
+      SubShop.CHALLENGES.forEach(ch => {
+        const e = data.challenges && data.challenges[ch.id];
+        if (!e) return;
+        if (e.solved) document.getElementById('solved-' + ch.id).checked = true;
+        if (e.vuln)      document.getElementById('f-' + ch.id + '-vuln').value      = e.vuln;
+        if (e.discovery) document.getElementById('f-' + ch.id + '-discovery').value = e.discovery;
+        if (e.vector)    document.getElementById('f-' + ch.id + '-vector').value    = e.vector;
+        if (e.exploit)   document.getElementById('f-' + ch.id + '-exploit').value   = e.exploit;
+        if (e.learned)   document.getElementById('f-' + ch.id + '-learned').value   = e.learned;
+        if (e.learnmode) document.getElementById('f-' + ch.id + '-learnmode').checked = true;
+        if (e.rating) {
+          const btn = document.querySelector('#rating-' + ch.id + ' [data-v="' + e.rating + '"]');
+          if (btn) btn.classList.add('selected');
+        }
+      });
+
+      if (data.pitfalls) {
+        [1, 2, 3].forEach(n => {
+          const p = data.pitfalls[n];
+          if (!p) return;
+          if (p.found) document.getElementById('hp-' + n + '-found').checked = true;
+          if (p.trigger) document.getElementById('hp-' + n + '-trigger').value = p.trigger;
+          if (p.lesson)  document.getElementById('hp-' + n + '-lesson').value  = p.lesson;
+          if (p.found || p.trigger || p.lesson) {
+            const flag = document.getElementById('hp-' + n + '-flag');
+            if (flag) flag.style.display = 'block';
+          }
+        });
+      }
+    } catch (e) { /* ignore corrupt data */ }
+  }
+
+  /* ──────────────────────────  SCORE CALCULATION  ──────────────────── */
+  function updateScoreSummary() {
+    let solved = 0;
+    SubShop.CHALLENGES.forEach(ch => {
+      if (document.getElementById('solved-' + ch.id).checked) solved++;
+    });
+    let bonus = 0;
+    [1, 2, 3].forEach(n => {
+      if (document.getElementById('hp-' + n + '-found').checked) bonus++;
+      const flag = document.getElementById('hp-' + n + '-flag');
+      if (flag) flag.style.display = document.getElementById('hp-' + n + '-found').checked ? 'block' : 'none';
+    });
+    document.getElementById('sc-score').textContent = solved;
+    document.getElementById('sc-total').textContent = SubShop.CHALLENGES.length;
+    document.getElementById('sc-bonus').textContent = bonus;
+  }
+
+  function calculateScore() {
+    autosave();
+    const solved = parseInt(document.getElementById('sc-score').textContent, 10);
+    const bonus  = parseInt(document.getElementById('sc-bonus').textContent, 10);
+    const total  = SubShop.CHALLENGES.length;
+    const msg = document.getElementById('save-msg');
+    msg.textContent = `Score: ${solved} / ${total} challenges + ${bonus} / 3 bonus — saved ✓`;
+    setTimeout(() => { msg.textContent = ''; }, 5000);
+  }
+
+  function resetScorecard() {
+    if (!confirm('Reset all scorecard entries? This cannot be undone.')) return;
+    localStorage.removeItem('scorecard');
+    location.reload();
+  }
+
+  /* ──────────────────────────  INSTRUCTOR MODE  ──────────────────────── */
+  function initInstructor() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('instructor') !== 'true') return;
+    document.getElementById('instructor-panel').style.display = 'block';
+
+    // Prompt for class code on first visit
+    const stored = localStorage.getItem('classCode');
+    if (stored) {
+      document.getElementById('inst-class-code').value = stored;
+    } else {
+      const code = prompt('Enter your class code (e.g. SEC-201-F25):');
+      if (code) {
+        document.getElementById('inst-class-code').value = code;
+        localStorage.setItem('classCode', code);
+      }
+    }
+
+    document.getElementById('inst-class-code').addEventListener('input', () => {
+      localStorage.setItem('classCode', document.getElementById('inst-class-code').value);
+    });
+  }
+
+  function exportResults() {
+    const data = collectData();
+    data.exportedAt = new Date().toISOString();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    const safeName = (data.name || 'student').replace(/[^a-z0-9]/gi, '_');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'scorecard_' + safeName + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function importResults(files) {
+    const summaryEl = document.getElementById('import-summary');
+    const rows = [];
+
+    let pending = files.length;
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const d = JSON.parse(reader.result);
+          let solved = 0, totalRating = 0, ratedCount = 0;
+          const methods = {};
+          if (d.challenges) {
+            Object.values(d.challenges).forEach(c => {
+              if (c.solved) solved++;
+              if (c.discovery) methods[c.discovery] = (methods[c.discovery] || 0) + 1;
+              if (c.rating) { totalRating += parseInt(c.rating, 10); ratedCount++; }
+            });
+          }
+          const topMethod = Object.entries(methods).sort((a, b) => b[1] - a[1])[0];
+          rows.push({
+            name:      d.name || '(unnamed)',
+            solved:    solved,
+            method:    topMethod ? topMethod[0] : '—',
+            avgRating: ratedCount ? (totalRating / ratedCount).toFixed(1) : '—',
+          });
+        } catch (e) {
+          rows.push({ name: file.name, solved: 'ERROR', method: '—', avgRating: '—' });
+        }
+        pending--;
+        if (pending === 0) renderImportTable(rows);
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  function renderImportTable(rows) {
+    const summaryEl = document.getElementById('import-summary');
+    if (!rows.length) { summaryEl.innerHTML = '<p>No valid files.</p>'; return; }
+    let html = `<table class="import-table">
+      <thead><tr><th>Student</th><th>Solved</th><th>Top Discovery Method</th><th>Avg Difficulty</th></tr></thead><tbody>`;
+    rows.forEach(r => {
+      html += `<tr><td>${r.name}</td><td>${r.solved}</td><td>${r.method}</td><td>${r.avgRating}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    summaryEl.innerHTML = html;
+  }
+
+  /* ──────────────────────────  INIT  ──────────────────────────────── */
+  buildSections();
+  buildPitfalls();
+  document.getElementById('sc-date').valueAsDate = new Date();
+  loadScorecard();
+  autoPopulateFromV4();
+  updateScoreSummary();
+  initInstructor();
+
+  // Auto-populate from student name in onboarding
+  const storedName = localStorage.getItem('studentName');
+  if (storedName && !document.getElementById('sc-name').value) {
+    document.getElementById('sc-name').value = storedName;
+  }
+  const storedClass = localStorage.getItem('classCode');
+  if (storedClass && !document.getElementById('sc-course').value) {
+    document.getElementById('sc-course').value = storedClass;
+  }
+
+  // Autosave on every input/change event
+  document.querySelector('.container').addEventListener('input', autosave);
+  document.querySelector('.container').addEventListener('change', autosave);
+
+  /* ──────────────────────────  v4 AUTO-POPULATE  ──────────────────── */
+  function autoPopulateFromV4() {
+    const completedChallenges = JSON.parse(localStorage.getItem('completedChallenges') || '[]');
+    if (!completedChallenges.length) return;
+
+    SubShop.CHALLENGES.forEach(ch => {
+      const strId = CH_STR_MAP[ch.id];
+      if (!completedChallenges.includes(strId)) return;
+      const solvedCb = document.getElementById('solved-' + ch.id);
+      if (solvedCb && !solvedCb.checked) solvedCb.checked = true;
+      // Auto-fill vulnerability name if empty
+      const vulnInput = document.getElementById('f-' + ch.id + '-vuln');
+      if (vulnInput && !vulnInput.value) vulnInput.value = ch.name;
+    });
+  }
+
+  /* ──────────────────────────  SECURITY REPORT EXPORT  ──────────── */
+  function exportHTMLReport() {
+    const data = collectData();
+    const completedChallenges = JSON.parse(localStorage.getItem('completedChallenges') || '[]');
+    const fixBadges = JSON.parse(localStorage.getItem('fixBadges') || '[]');
+    const modules = window.Modules ? Modules.MODULES : [];
+
+    let challengeHtml = '';
+
+    modules.forEach((mod, idx) => {
+      challengeHtml += '<h2 style="margin-top:1.5em;border-bottom:2px solid #333;padding-bottom:0.3em;">Module ' + (idx+1) + ': ' + mod.title + '</h2>';
+      mod.challenges.forEach(chStrId => {
+        const numId = window.Modules ? Modules.CHALLENGE_ID_MAP[chStrId] : null;
+        const ch = numId ? SubShop.CHALLENGES.find(c => c.id === numId) : null;
+        if (!ch) return;
+        const entry = data.challenges[ch.id] || {};
+        const hasFix = fixBadges.includes(chStrId);
+        let qualityLabel = '';
+        if (completedChallenges.includes(chStrId) && window.HintTokens) {
+          const q = HintTokens.getSolveQuality(chStrId);
+          if (q) qualityLabel = ' (' + q.icon + ' ' + q.label + ')';
+        }
+        challengeHtml += '<div style="margin:1em 0;padding:1em;border:1px solid #ddd;border-radius:6px;">';
+        challengeHtml += '<h3>#' + ch.id + ' — ' + ch.name + ' [' + ch.owasp + ']' + qualityLabel + (hasFix ? ' 🔧' : '') + '</h3>';
+        challengeHtml += '<p><strong>Solved:</strong> ' + (entry.solved ? 'Yes' : 'No') + '</p>';
+        if (entry.vuln) challengeHtml += '<p><strong>Vulnerability:</strong> ' + escapeHtml(entry.vuln) + '</p>';
+        if (entry.discovery) challengeHtml += '<p><strong>Discovery:</strong> ' + escapeHtml(entry.discovery) + '</p>';
+        if (entry.vector) challengeHtml += '<p><strong>Vector:</strong> ' + escapeHtml(entry.vector) + '</p>';
+        if (entry.exploit) challengeHtml += '<p><strong>Exploit:</strong> ' + escapeHtml(entry.exploit).replace(/\n/g, '<br>') + '</p>';
+        if (entry.learned) challengeHtml += '<p><strong>Learned:</strong> ' + escapeHtml(entry.learned).replace(/\n/g, '<br>') + '</p>';
+        challengeHtml += '</div>';
+      });
+    });
+
+    const solved = Object.values(data.challenges).filter(c => c.solved).length;
+    const bonus = Object.values(data.pitfalls).filter(p => p.found).length;
+
+    const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Security Report — ' + escapeHtml(data.name || 'Student') + '</title>' +
+      '<style>body{font-family:system-ui,sans-serif;max-width:800px;margin:2em auto;padding:0 1em;line-height:1.6;color:#222;}' +
+      'h1{border-bottom:3px solid #333;padding-bottom:0.5em;}h2{color:#555;}h3{margin-bottom:0.3em;}' +
+      '.meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1em;margin:1em 0;padding:1em;background:#f5f5f5;border-radius:6px;}' +
+      '.score{text-align:center;font-size:1.5em;font-weight:700;margin:1em 0;}</style></head><body>' +
+      '<h1>🔒 Security Findings Report</h1>' +
+      '<div class="meta"><div><strong>Student:</strong> ' + escapeHtml(data.name || '—') + '</div>' +
+      '<div><strong>Course:</strong> ' + escapeHtml(data.course || '—') + '</div>' +
+      '<div><strong>Date:</strong> ' + escapeHtml(data.date || '—') + '</div></div>' +
+      '<div class="score">' + solved + ' / ' + SubShop.CHALLENGES.length + ' Challenges + ' + bonus + ' / 3 Bonus Pitfalls</div>' +
+      challengeHtml +
+      '<p style="margin-top:2em;color:#888;font-size:0.8em;">Generated by The Sub Shop Security Lab — ' + new Date().toISOString() + '</p>' +
+      '</body></html>';
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'security-report-' + (data.name || 'student').replace(/[^a-z0-9]/gi, '_') + '.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  window.exportHTMLReport = exportHTMLReport;
+</script>
+</body>
+</html>

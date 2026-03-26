@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scorecard — The Sub Shop Security Lab</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .sc-meta { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:2rem; }
+    @media(max-width:600px){ .sc-meta { grid-template-columns:1fr; } }
+    .print-btn { display:none; }
+    @media print {
+      .site-nav, .site-footer, .btn:not(.print-btn), #save-bar { display:none !important; }
+      .print-btn { display:inline-flex; }
+      body { background:#fff; color:#000; }
+      .scorecard-section { border:1px solid #ccc; page-break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="index.html">← Board</a></li>
+    <li><a href="pages/menu.html">Menu</a></li>
+    <li><a href="pages/order.html">Order</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <div class="owasp-badge">TRAINING LAB · SCORECARD</div>
+    <h1>Security Findings Report</h1>
+    <p>Document each vulnerability you discovered — what it is, how you found it, and how you exploited it.</p>
+  </div>
+
+  <!-- Student Info -->
+  <div class="panel">
+    <h2>Student Information</h2>
+    <div class="sc-meta">
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Name</label>
+        <input type="text" id="sc-name" placeholder="Your name">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Course / Class</label>
+        <input type="text" id="sc-course" placeholder="e.g. SEC-201">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Date</label>
+        <input type="date" id="sc-date">
+      </div>
+    </div>
+  </div>
+
+  <!-- Challenge Sections -->
+  <div id="scorecard-sections"></div>
+
+  <!-- Honeypot / Gotcha section -->
+  <div class="panel" style="margin-top:2rem;" id="pitfall-section">
+    <h2 style="margin-bottom:0.4rem;">Bonus: Hidden Pitfalls</h2>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;line-height:1.7;">
+      The app contains a small number of undocumented traps — scenarios designed to catch careless or curious behavior.
+      If you stumbled into one (or found it deliberately), document what happened. <em>No further hints provided.</em>
+    </p>
+
+    <!-- Pitfall 1 -->
+    <div class="scorecard-section" style="margin-bottom:1rem;">
+      <div class="scorecard-header">
+        <span class="scorecard-num" style="background:var(--danger);color:#fff;">?</span>
+        <div>
+          <h3>Pitfall #1</h3>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Hidden scenario — unlocked when triggered</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="owasp-id" style="color:var(--danger);">GOTCHA</div>
+          <div id="hp-1-flag" style="font-size:0.7rem;color:var(--success);margin-top:0.3rem;display:none;">✓ Found</div>
+        </div>
+      </div>
+      <div class="scorecard-body">
+        <div class="form-group">
+          <label>Where were you when it triggered?</label>
+          <input type="text" id="hp-1-page" placeholder="Which page or section of the app?">
+        </div>
+        <div class="form-group">
+          <label>What action triggered it?</label>
+          <textarea id="hp-1-trigger" placeholder="Describe what you clicked, submitted, typed, or set..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>What was the security lesson?</label>
+          <textarea id="hp-1-lesson" placeholder="What did the reveal tell you? Why does this matter in the real world?"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pitfall 2 -->
+    <div class="scorecard-section" style="margin-bottom:1rem;">
+      <div class="scorecard-header">
+        <span class="scorecard-num" style="background:var(--danger);color:#fff;">?</span>
+        <div>
+          <h3>Pitfall #2</h3>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Hidden scenario — unlocked when triggered</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="owasp-id" style="color:var(--danger);">GOTCHA</div>
+          <div id="hp-2-flag" style="font-size:0.7rem;color:var(--success);margin-top:0.3rem;display:none;">✓ Found</div>
+        </div>
+      </div>
+      <div class="scorecard-body">
+        <div class="form-group">
+          <label>Where were you when it triggered?</label>
+          <input type="text" id="hp-2-page" placeholder="Which page or section of the app?">
+        </div>
+        <div class="form-group">
+          <label>What action triggered it?</label>
+          <textarea id="hp-2-trigger" placeholder="Describe what you clicked, submitted, typed, or set..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>What was the security lesson?</label>
+          <textarea id="hp-2-lesson" placeholder="What did the reveal tell you? Why does this matter in the real world?"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pitfall 3 -->
+    <div class="scorecard-section">
+      <div class="scorecard-header">
+        <span class="scorecard-num" style="background:var(--danger);color:#fff;">?</span>
+        <div>
+          <h3>Pitfall #3</h3>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Hidden scenario — unlocked when triggered</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="owasp-id" style="color:var(--danger);">GOTCHA</div>
+          <div id="hp-3-flag" style="font-size:0.7rem;color:var(--success);margin-top:0.3rem;display:none;">✓ Found</div>
+        </div>
+      </div>
+      <div class="scorecard-body">
+        <div class="form-group">
+          <label>Where were you when it triggered?</label>
+          <input type="text" id="hp-3-page" placeholder="Which page or section of the app?">
+        </div>
+        <div class="form-group">
+          <label>What action triggered it?</label>
+          <textarea id="hp-3-trigger" placeholder="Describe what you clicked, submitted, typed, or set..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>What was the security lesson?</label>
+          <textarea id="hp-3-lesson" placeholder="What did the reveal tell you? Why does this matter in the real world?"></textarea>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Save Bar -->
+  <div id="save-bar" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;padding:1.5rem 0;">
+    <button class="btn btn-primary" onclick="saveScorecard()">Save to Browser</button>
+    <button class="btn btn-ghost" onclick="window.print()">Print / Export PDF</button>
+    <button class="btn btn-ghost" onclick="clearScorecard()" style="margin-left:auto;color:var(--text-muted);">Clear All</button>
+    <span id="save-msg" style="font-size:0.82rem;color:var(--success);"></span>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="index.html">← Back to Challenge Board</a>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+  const FIELDS = [
+    { key: 'vuln',      label: 'Vulnerability Name',    type: 'input',    placeholder: 'e.g. Broken Access Control' },
+    { key: 'discovery', label: 'How did you find it?',  type: 'textarea', placeholder: 'Describe your discovery method — what tools or observations led you here?' },
+    { key: 'exploit',   label: 'How did you exploit it?', type: 'textarea', placeholder: 'Step-by-step: what did you do to demonstrate the vulnerability?' },
+    { key: 'impact',    label: 'What is the real-world impact?', type: 'textarea', placeholder: 'What could an attacker do with this in production?' },
+  ];
+
+  function buildSections() {
+    const container = document.getElementById('scorecard-sections');
+    const progress = SubShop.getProgress();
+
+    SubShop.CHALLENGES.forEach(ch => {
+      const done = !!progress[ch.id];
+      const sec = document.createElement('div');
+      sec.className = 'scorecard-section';
+      sec.id = 'sc-ch-' + ch.id;
+
+      let fieldsHTML = FIELDS.map(f => `
+        <div class="form-group">
+          <label>${f.label}</label>
+          ${f.type === 'input'
+            ? `<input type="text" id="f-${ch.id}-${f.key}" placeholder="${f.placeholder}">`
+            : `<textarea id="f-${ch.id}-${f.key}" placeholder="${f.placeholder}"></textarea>`
+          }
+        </div>
+      `).join('');
+
+      sec.innerHTML = `
+        <div class="scorecard-header">
+          <span class="scorecard-num">${ch.id}</span>
+          <div>
+            <h3>${ch.name}</h3>
+            <div style="font-size:0.75rem;color:var(--text-muted);">${ch.sub}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="owasp-id" style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--accent);">${ch.owasp}</div>
+            <span class="difficulty ${ch.difficulty}" style="margin-top:0.3rem;display:inline-block;">${ch.difficulty}</span>
+            ${done ? '<div style="font-size:0.7rem;color:var(--success);margin-top:0.3rem;">✓ Flagged</div>' : ''}
+          </div>
+        </div>
+        <div class="scorecard-body">
+          ${fieldsHTML}
+          <div class="form-group">
+            <label>Difficulty (your rating)</label>
+            <div class="rating-group" id="rating-${ch.id}">
+              <button class="rating-btn" data-v="1">1 — Trivial</button>
+              <button class="rating-btn" data-v="2">2 — Easy</button>
+              <button class="rating-btn" data-v="3">3 — Medium</button>
+              <button class="rating-btn" data-v="4">4 — Hard</button>
+              <button class="rating-btn" data-v="5">5 — Expert</button>
+            </div>
+          </div>
+        </div>
+      `;
+      container.appendChild(sec);
+
+      // Rating button toggle
+      const ratingGroup = sec.querySelector('#rating-' + ch.id);
+      ratingGroup.querySelectorAll('.rating-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          ratingGroup.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+        });
+      });
+    });
+  }
+
+  function saveScorecard() {
+    const data = {
+      name:   document.getElementById('sc-name').value,
+      course: document.getElementById('sc-course').value,
+      date:   document.getElementById('sc-date').value,
+      challenges: {}
+    };
+
+    SubShop.CHALLENGES.forEach(ch => {
+      const entry = {};
+      FIELDS.forEach(f => {
+        entry[f.key] = document.getElementById('f-' + ch.id + '-' + f.key).value;
+      });
+      const ratingGroup = document.getElementById('rating-' + ch.id);
+      const selected = ratingGroup.querySelector('.rating-btn.selected');
+      entry.rating = selected ? selected.dataset.v : '';
+      data.challenges[ch.id] = entry;
+    });
+
+    const pitfalls = {};
+    [1, 2, 3].forEach(n => {
+      pitfalls[n] = {
+        page:    document.getElementById('hp-' + n + '-page').value,
+        trigger: document.getElementById('hp-' + n + '-trigger').value,
+        lesson:  document.getElementById('hp-' + n + '-lesson').value,
+      };
+    });
+    data.pitfalls = pitfalls;
+
+    localStorage.setItem('subshop_scorecard', JSON.stringify(data));
+    const msg = document.getElementById('save-msg');
+    msg.textContent = '✓ Saved at ' + new Date().toLocaleTimeString();
+    setTimeout(() => { msg.textContent = ''; }, 3000);
+  }
+
+  function loadScorecard() {
+    try {
+      const raw = localStorage.getItem('subshop_scorecard');
+      if (!raw) return;
+      const data = JSON.parse(raw);
+
+      if (data.name)   document.getElementById('sc-name').value   = data.name;
+      if (data.course) document.getElementById('sc-course').value = data.course;
+      if (data.date)   document.getElementById('sc-date').value   = data.date;
+
+      SubShop.CHALLENGES.forEach(ch => {
+        const entry = data.challenges && data.challenges[ch.id];
+        if (!entry) return;
+        FIELDS.forEach(f => {
+          const el = document.getElementById('f-' + ch.id + '-' + f.key);
+          if (el && entry[f.key]) el.value = entry[f.key];
+        });
+        if (entry.rating) {
+          const btn = document.querySelector('#rating-' + ch.id + ' [data-v="' + entry.rating + '"]');
+          if (btn) btn.classList.add('selected');
+        }
+      });
+
+      if (data.pitfalls) {
+        [1, 2, 3].forEach(n => {
+          const e = data.pitfalls[n];
+          if (!e) return;
+          ['page', 'trigger', 'lesson'].forEach(k => {
+            const el = document.getElementById('hp-' + n + '-' + k);
+            if (el && e[k]) el.value = e[k];
+          });
+          // Show "✓ Found" badge if any field has content
+          if (e.page || e.trigger || e.lesson) {
+            const flag = document.getElementById('hp-' + n + '-flag');
+            if (flag) flag.style.display = 'block';
+          }
+        });
+      }
+    } catch(e) { /* ignore corrupt data */ }
+  }
+
+  function clearScorecard() {
+    if (!confirm('Clear all scorecard entries? This cannot be undone.')) return;
+    localStorage.removeItem('subshop_scorecard');
+    location.reload();
+  }
+
+  // Set today's date as default
+  document.getElementById('sc-date').valueAsDate = new Date();
+
+  buildSections();
+  loadScorecard();
+
+  // Show "✓ Found" badge live as student fills in any pitfall field
+  [1, 2, 3].forEach(n => {
+    ['page', 'trigger', 'lesson'].forEach(k => {
+      document.getElementById('hp-' + n + '-' + k).addEventListener('input', () => {
+        const any = ['page','trigger','lesson'].some(
+          k2 => document.getElementById('hp-' + n + '-' + k2).value.trim()
+        );
+        const flag = document.getElementById('hp-' + n + '-flag');
+        if (flag) flag.style.display = any ? 'block' : 'none';
+      });
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Login — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a07">
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #7 · A07 — Identification & Auth Failures        ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- VULNERABILITY 1: Credentials are hardcoded in client-side JS.  -->
+<!-- VULNERABILITY 2: No rate-limiting, lockout, or CAPTCHA.        -->
+<!-- VULNERABILITY 3: Auth state stored in localStorage — tamperable. -->
+<!-- VULNERABILITY 4: JWT signed with a hardcoded secret in JS.     -->
+<!--                                                                  -->
+<!-- HINT: What does the app store in localStorage after you log in? Can it be modified? -->
+
+<header class="site-header">
+  <nav class="main-nav">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <ul class="main-nav-links">
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="order.html">Order</a></li>
+      <li><a href="loyalty.html">Rewards</a></li>
+      <li><a href="#">Locations</a></li>
+      <li><a href="order.html">Catering</a></li>
+      <li><a href="../challenges.html">Challenges</a></li>
+    </ul>
+    <div class="nav-ctas">
+      <a href="login.html" class="btn-signin">Sign In</a>
+      <a href="order.html" class="btn btn-primary btn-lg">Order Now</a>
+      <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+    </div>
+  </nav>
+</header>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A07">
+  <span class="learn-tag">OWASP A07</span>
+  <strong>Identification &amp; Authentication Failures</strong>
+  <span>"When tokens are stored client-side and not validated server-side, users can forge their own identity."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — Authentication Failures</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The staff login stores authentication state entirely in the browser. No server-side session validation exists.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">Staff accounts — any user could forge an admin session through token manipulation or credential discovery.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Exploit the authentication chain — from hardcoded credentials to forgeable tokens to missing lockout.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="page-eyebrow">STAFF SIGN IN</div>
+    <h1>Staff Login</h1>
+    <p>Restricted area. Authorized personnel only.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> View the page source (Ctrl+U). Look for credentials in the JavaScript.</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> After logging in, check <code>localStorage</code> for session data. Decode it.</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> The token is a JWT signed with a secret that's also in the source. Change <code>role</code> to <code>admin</code> and re-sign.</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">1. View source, find <code>admin / SubShop2026!</code> credentials. 2. Log in, then check <code>localStorage.subshop_session</code>. 3. Decode the JWT payload (base64), change <code>"role":"staff"</code> to <code>"role":"admin"</code>, re-sign with the <code>JWT_SECRET</code> from source, and set it back in localStorage.</div>
+    </div>
+  </div>
+
+  <div style="max-width:440px;">
+
+    <!-- Login Form -->
+    <div id="login-box" class="panel">
+      <h2>Sign In</h2>
+      <div id="auth-error" class="alert alert-danger hidden"></div>
+      <div id="attempt-info" class="alert alert-warning hidden"></div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Enter username" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()" style="width:100%;">Sign In</button>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-top:1rem;line-height:1.5;">
+        Locked out? Contact your manager or IT at <code style="font-size:0.75rem;">it@subshop.internal</code>
+      </p>
+      <!-- HONEYPOT -->
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.5rem;border-top:1px solid var(--border);padding-top:0.75rem;line-height:1.5;">
+        Forgot your password? <a href="phishing.html" style="color:var(--text-muted);text-decoration:underline;text-underline-offset:2px;">Reset it here →</a>
+      </p>
+    </div>
+
+    <!-- Logged-In Panel -->
+    <div id="logged-in-box" class="panel hidden">
+      <div class="alert alert-success" style="margin-bottom:1.25rem;">
+        ✓ &nbsp;Authenticated as <strong id="auth-user">—</strong>
+        &nbsp;<span id="auth-role-badge" style="font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:2px;background:rgba(87,204,153,0.15);color:var(--success);border:1px solid rgba(87,204,153,0.3);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;"></span>
+      </div>
+      <div id="bypass-method" class="alert alert-warning" style="margin-bottom:1.25rem;"></div>
+
+      <!-- JWT Session Token display -->
+      <div class="panel" style="background:var(--surface-2);margin-bottom:1.25rem;">
+        <h3 style="margin-bottom:0.5rem;">Your Session Token</h3>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;line-height:1.6;">
+          A JWT is issued on login and stored in <code>localStorage</code> as <code>subshop_session</code>. The current role is <strong id="jwt-role-display" style="color:var(--warning);">staff</strong>.
+          To unlock the Admin Panel, forge this token with <code>"role":"admin"</code>.
+        </p>
+        <div class="token-label">JWT Token (stored in localStorage)</div>
+        <div class="token-box jwt-part" id="jwt-display">—</div>
+        <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
+          <button class="btn btn-ghost" style="font-size:0.78rem;" onclick="decodeJWT()">Decode JWT</button>
+          <button class="btn btn-ghost" style="font-size:0.78rem;" onclick="copyJWT()">Copy Token</button>
+        </div>
+        <div id="jwt-decoded-panel" class="hidden" style="margin-top:1rem;">
+          <div class="alert alert-info" style="margin-bottom:0.75rem;font-size:0.82rem;">
+            JWT decoded. The payload contains your role. Change <code>"role":"staff"</code> → <code>"role":"admin"</code>, re-sign with <code>JWT_SECRET</code>, and set in localStorage.
+          </div>
+          <div class="token-label">Header</div>
+          <pre id="jwt-header-out" style="font-size:0.76rem;margin:0.35rem 0 0.75rem;"></pre>
+          <div class="token-label">Payload</div>
+          <pre id="jwt-payload-out" style="font-size:0.76rem;margin:0.35rem 0 0.75rem;"></pre>
+          <div class="token-label">Signature (pseudo-HMAC with hardcoded key)</div>
+          <pre id="jwt-sig-out" style="font-size:0.76rem;margin:0.35rem 0;"></pre>
+        </div>
+      </div>
+
+      <!-- Admin Panel — unlocked only when JWT has role:admin -->
+      <div id="admin-unlocked-box" class="hidden admin-section" style="margin-bottom:1.25rem;">
+        <div class="alert alert-danger" style="margin-bottom:1rem;">
+          🔓 &nbsp;<strong>Admin JWT accepted.</strong>
+          You forged a token with <code>"role":"admin"</code> and a valid signature using the hardcoded <code>JWT_SECRET</code>. The server accepted it without questioning the client.
+        </div>
+        <button class="btn btn-primary" onclick="SubShop.markComplete(7)">
+          ✓ &nbsp;Mark Challenge #7 Complete
+        </button>
+      </div>
+
+      <!-- Basic completion path -->
+      <div id="basic-complete-box" class="admin-section">
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.6;">
+          You are logged in as <strong>staff</strong>. For full challenge completion, forge the JWT to <code>"role":"admin"</code>.
+          Check the hints panel below for the forging workflow.
+        </p>
+        <button class="btn btn-ghost" onclick="doLogout()">Logout</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Attack hints panel -->
+  <div class="panel mt-3" style="max-width:540px;background:var(--surface-2);">
+    <h3 style="margin-bottom:0.75rem;">Attack Vectors to Try</h3>
+    <ol style="padding-left:1.25rem;color:var(--text-muted);font-size:0.85rem;line-height:2.2;">
+      <li><strong style="color:var(--text);">Read source</strong> — credentials and JWT_SECRET are hardcoded.</li>
+      <li><strong style="color:var(--text);">Brute-force</strong> — no lockout after failed attempts.</li>
+      <li><strong style="color:var(--text);">localStorage bypass</strong> — run in Console:<br>
+        <code style="font-size:0.75rem;">localStorage.setItem('subshop_auth', JSON.stringify({user:'hacker',role:'admin'})); location.reload();</code>
+      </li>
+      <li><strong style="color:var(--text);">JWT forgery</strong> — run in Console after logging in:<br>
+        <code style="font-size:0.73rem;word-break:break-all;">
+          // 1) Build forged payload<br>
+          const p = btoa(JSON.stringify({sub:'admin',role:'admin',iat:Date.now()})).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');<br>
+          // 2) Compute header<br>
+          const h = btoa(JSON.stringify({alg:'HS256',typ:'JWT'})).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');<br>
+          // 3) Sign it (same formula as JWT_SECRET in source)<br>
+          const s = btoa('SubShop-JWT-Secret-2026.'+h+'.'+p).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');<br>
+          localStorage.setItem('subshop_session', h+'.'+p+'.'+s); location.reload();
+        </code>
+      </li>
+    </ol>
+  </div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">When tokens are stored client-side and not validated server-side, users can forge their own identity. The app trusts whatever is in localStorage — change it, and you change who you are.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> A bouncer who accepts any ID as long as it has the right format — he never actually calls to verify.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2012 LinkedIn breach — 6.5M unsalted SHA-1 password hashes cracked within hours.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div class="page-footer-inner">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <div class="page-footer-links">
+      <a href="menu.html">Menu</a>
+      <a href="order.html">Order</a>
+      <a href="loyalty.html">Rewards</a>
+      <a href="#">Locations</a>
+      <a href="feedback.html">Contact</a>
+    </div>
+    <div class="page-footer-copy">&copy; 2025 The Sub Shop LLC &mdash; All Rights Reserved<br><a href="../challenges.html" class="lab-link">🔐</a></div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY 1: Credentials hardcoded in client-side JS.
+  //
+  // VULNERABILITY 2: No attempt limiting / lockout / delay.
+  //
+  // VULNERABILITY 3: Authentication state stored in localStorage.
+  //   run: localStorage.setItem('subshop_auth', JSON.stringify({user:'hacker',role:'admin'}))
+  //
+  // VULNERABILITY 4: JWT signed with a hardcoded secret in client-side JS.
+  //   JWT_SECRET is visible here. An attacker can forge any token payload,
+  //   sign it with the known secret, and present it as authentic.
+  //
+  // Fix: Credentials live only on the server. JWT secrets never leave the
+  // server. Auth tokens use HttpOnly cookies. Implement account lockout.
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Hardcoded credentials — visible to anyone who views source
+  const STAFF_CREDS = {
+    'admin':   'password123',
+    'jsmith':  'SubShop1!',
+    'prep01':  'sandwich',
+    'manager': 'letmein2024',
+  };
+
+  // ── VULNERABILITY 4: JWT secret hardcoded in client-side JS ─────────
+  // Anyone who reads this file can forge tokens with any payload.
+  const JWT_SECRET = 'SubShop-JWT-Secret-2026';
+  // ────────────────────────────────────────────────────────────────────
+
+  // JWT helpers — structurally correct HS256 format, weak client-side signing
+  function b64url(str) {
+    return btoa(str).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  }
+  function jwtSign(headerB64, payloadB64) {
+    // "HMAC": btoa(secret + '.' + header + '.' + payload) — deliberately bypasable
+    return b64url(JWT_SECRET + '.' + headerB64 + '.' + payloadB64);
+  }
+  function makeJWT(payload) {
+    const header  = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const body    = b64url(JSON.stringify(payload));
+    const sig     = jwtSign(header, body);
+    return header + '.' + body + '.' + sig;
+  }
+  function verifyJWT(token) {
+    try {
+      const [h, p, s] = token.split('.');
+      if (!h || !p || !s) return null;
+      const expected = jwtSign(h, p);
+      if (s !== expected) return { error: 'Signature invalid — token rejected.' };
+      const payload = JSON.parse(atob(p.replace(/-/g, '+').replace(/_/g, '/')));
+      return { payload };
+    } catch(e) {
+      return { error: 'Decode error: ' + e.message };
+    }
+  }
+
+  let failedAttempts = 0;
+
+  function doLogin() {
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value;
+    const errEl  = document.getElementById('auth-error');
+    const infoEl = document.getElementById('attempt-info');
+
+    if (STAFF_CREDS[u] && STAFF_CREDS[u] === p) {
+      const role = (u === 'admin' || u === 'manager') ? 'staff' : 'staff';
+      localStorage.setItem('subshop_auth', JSON.stringify({ user: u, role }));
+      const jwt = makeJWT({ sub: u, role, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600 });
+      localStorage.setItem('subshop_session', jwt);
+      showLoggedIn(u, 'Valid credentials found in page source.', jwt);
+    } else {
+      failedAttempts++;
+      errEl.textContent = 'Invalid username or password.';
+      errEl.classList.remove('hidden');
+      if (failedAttempts >= 3) {
+        infoEl.textContent = `${failedAttempts} failed attempts — no lockout is enforced. Keep trying.`;
+        infoEl.classList.remove('hidden');
+      }
+    }
+  }
+
+  function showLoggedIn(user, method, jwt) {
+    document.getElementById('login-box').classList.add('hidden');
+    document.getElementById('logged-in-box').classList.remove('hidden');
+    document.getElementById('auth-user').textContent = user;
+    document.getElementById('bypass-method').textContent = '🔓 Auth method: ' + method;
+
+    // Resolve JWT — either the one just created, or the one in storage
+    const activeJWT = jwt || localStorage.getItem('subshop_session');
+
+    if (activeJWT) {
+      // Display the JWT token with colour-coded parts
+      const parts = activeJWT.split('.');
+      const jwtEl = document.getElementById('jwt-display');
+      jwtEl.innerHTML =
+        `<span class="jwt-header">${parts[0]}</span>` +
+        `<span style="color:var(--border);">.</span>` +
+        `<span class="jwt-payload">${parts[1]}</span>` +
+        `<span style="color:var(--border);">.</span>` +
+        `<span class="jwt-sig">${parts[2]}</span>`;
+
+      // Check if the current JWT has role:admin
+      const verified = verifyJWT(activeJWT);
+      if (verified && verified.payload && verified.payload.role === 'admin') {
+        document.getElementById('jwt-role-display').textContent = 'admin';
+        document.getElementById('jwt-role-display').style.color = 'var(--danger)';
+        document.getElementById('auth-role-badge').textContent = 'ADMIN';
+        document.getElementById('admin-unlocked-box').classList.remove('hidden');
+        document.getElementById('basic-complete-box').style.display = 'none';
+      } else {
+        document.getElementById('jwt-role-display').textContent = verified?.payload?.role || 'staff';
+        document.getElementById('auth-role-badge').textContent = (verified?.payload?.role || 'STAFF').toUpperCase();
+      }
+    }
+  }
+
+  function decodeJWT() {
+    const raw = localStorage.getItem('subshop_session');
+    if (!raw) { alert('No session token found — log in first.'); return; }
+    const result = verifyJWT(raw);
+    const panel  = document.getElementById('jwt-decoded-panel');
+    panel.classList.remove('hidden');
+
+    if (result && result.error) {
+      document.getElementById('jwt-payload-out').textContent = result.error;
+      return;
+    }
+    const [h, p] = raw.split('.');
+    try {
+      document.getElementById('jwt-header-out').textContent  = JSON.stringify(JSON.parse(atob(h.replace(/-/g,'+').replace(/_/g,'/'))), null, 2);
+      document.getElementById('jwt-payload-out').textContent = JSON.stringify(result.payload, null, 2);
+      document.getElementById('jwt-sig-out').textContent     = raw.split('.')[2] + '\n\n(formula: btoa(JWT_SECRET + "." + header + "." + payload))';
+    } catch(e) {
+      document.getElementById('jwt-payload-out').textContent = 'Decode error: ' + e.message;
+    }
+  }
+
+  function copyJWT() {
+    const raw = localStorage.getItem('subshop_session') || '';
+    navigator.clipboard.writeText(raw)
+      .then(() => alert('JWT copied! Decode parts with: atob(part.replace(/-/g,"+").replace(/_/g,"/"))'))
+      .catch(() => alert('Copy failed — select the token manually.'));
+  }
+
+  function doLogout() {
+    localStorage.removeItem('subshop_auth');
+    localStorage.removeItem('subshop_session');
+    document.getElementById('login-box').classList.remove('hidden');
+    document.getElementById('logged-in-box').classList.add('hidden');
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    document.getElementById('jwt-decoded-panel').classList.add('hidden');
+    failedAttempts = 0;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' &&
+        (document.activeElement.id === 'username' ||
+         document.activeElement.id === 'password')) doLogin();
+  });
+
+  // Check for localStorage auth bypass (Attack Vector 3) or stored JWT (Vector 4)
+  (function checkStoredAuth() {
+    try {
+      // First check for forged JWT
+      const storedJWT = localStorage.getItem('subshop_session');
+      if (storedJWT) {
+        const result = verifyJWT(storedJWT);
+        if (result && result.payload) {
+          showLoggedIn(result.payload.sub || 'unknown',
+            result.payload.role === 'admin'
+              ? 'JWT with role:admin — token forged successfully!'
+              : 'Valid JWT found in localStorage.',
+            storedJWT);
+          return;
+        }
+      }
+      // Fallback: legacy localStorage auth
+      const stored = JSON.parse(localStorage.getItem('subshop_auth') || 'null');
+      if (stored && stored.user) {
+        // Issue a new staff JWT for the stored user
+        const jwt = makeJWT({ sub: stored.user, role: 'staff', iat: Math.floor(Date.now() / 1000) });
+        localStorage.setItem('subshop_session', jwt);
+        showLoggedIn(stored.user, 'localStorage tampered — no server verification performed.', jwt);
+      }
+    } catch (e) { /* corrupt data */ }
+  })();
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>

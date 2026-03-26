@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Menu — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #3 · A03 — Injection (DOM-Based XSS)             ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: Look at the URL after you search for something.           -->
+<!-- HINT: The search term is reflected back onto the page.          -->
+<!-- HINT: How is it being inserted into the DOM?                    -->
+<!-- HINT: Try searching:  <img src=x onerror=alert(document.domain)>  -->
+<!--                                                                  -->
+<!-- VULNERABILITY: The search query from window.location.search is  -->
+<!-- written directly into the page via element.innerHTML — without   -->
+<!-- any HTML encoding or sanitization. This allows injecting         -->
+<!-- arbitrary HTML and JavaScript (DOM-Based XSS).                  -->
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html">Order</a></li>
+    <li><a href="loyalty.html">Rewards</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Staff Portal</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <div class="owasp-badge">A03 · Challenge #3 · Injection</div>
+    <h1>Search Menu</h1>
+    <p>Find your favorite sub by name, ingredient, or dietary preference.</p>
+  </div>
+
+  <!-- Search Bar -->
+  <form class="search-bar" id="search-form" onsubmit="doSearch(event)">
+    <input type="text" id="search-input" placeholder="Search subs, ingredients…" autocomplete="off">
+    <button type="submit" class="btn btn-primary">Search</button>
+    <button type="button" class="btn btn-ghost" onclick="clearSearch()">Clear</button>
+  </form>
+
+  <!-- Results header: search term reflected here via innerHTML -->
+  <!-- VULNERABILITY: innerHTML used below — never sanitized     -->
+  <div id="results-header" class="search-results-header"></div>
+  <div id="results-grid" class="menu-grid"></div>
+
+  <!-- Shown when no results -->
+  <div id="no-results" class="hidden" style="color:var(--text-muted);font-size:0.9rem;padding:2rem 0;">
+    No menu items matched your search.
+  </div>
+
+  <!-- XSS Demo complete button — shown via script after payload fires -->
+  <div id="xss-banner" class="hidden admin-section" style="margin-top:2rem;">
+    <div class="alert alert-danger">
+      🚨 &nbsp;<strong>XSS Payload Executed.</strong>
+      Arbitrary JavaScript ran in the context of this page. In a real app, this could steal cookies, redirect users, or load malicious scripts.
+    </div>
+    <button class="btn btn-primary" onclick="SubShop.markComplete(3)">
+      ✓ &nbsp;Mark Challenge #3 Complete
+    </button>
+  </div>
+
+  <!-- Hint panel -->
+  <div class="panel mt-3" style="background:var(--surface-2);">
+    <h3 style="margin-bottom:0.5rem;">Try These Searches</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+      <button class="btn btn-ghost" onclick="setSearch('turkey')">turkey</button>
+      <button class="btn btn-ghost" onclick="setSearch('veggie')">veggie</button>
+      <button class="btn btn-ghost" onclick="setSearch('&lt;b&gt;bold&lt;/b&gt;')">&lt;b&gt;bold&lt;/b&gt;</button>
+      <button class="btn btn-ghost" onclick="setSearch('&lt;img src=x onerror=alert(1)&gt;')">&lt;img src=x onerror=alert(1)&gt;</button>
+      <button class="btn btn-ghost" onclick="setSearch('&lt;img src=x onerror=&quot;window._xssFlag()&quot;&gt;')">&lt;img src=x onerror=&quot;window._xssFlag()&quot;&gt;</button>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.75rem;">The last two examples are XSS payloads. The final one also triggers the completion banner.</p>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="../index.html">← Challenge Board</a>
+</footer>
+
+<script src="../js/main.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY: The "q" parameter from the URL is read and written
+  // directly into element.innerHTML — no encoding, no DOMPurify, nothing.
+  //
+  // Proof of concept: ?q=<img src=x onerror=alert(document.cookie)>
+  //
+  // Fix: Use element.textContent instead of innerHTML, or sanitize with
+  // DOMPurify.sanitize() before inserting user-supplied strings.
+  // ─────────────────────────────────────────────────────────────────────
+
+  const MENU = [
+    { name: 'Classic Italian',   desc: 'Salami, pepperoni, capicola, provolone', price: '$12.99', emoji: '🥖', tags: ['italian','meat','classic'] },
+    { name: 'Veggie Delight',    desc: 'Roasted peppers, avocado, feta, spinach', price: '$10.99', emoji: '🍅', tags: ['veggie','vegan','healthy'] },
+    { name: 'Turkey Club',       desc: 'Turkey, bacon, swiss, avocado, mayo',     price: '$13.49', emoji: '🍗', tags: ['turkey','club','bacon'] },
+    { name: 'Philly Cheesesteak',desc: 'Ribeye, onions, peppers, provolone',      price: '$14.99', emoji: '🥩', tags: ['beef','philly','hot'] },
+    { name: 'Shrimp Po\'Boy',    desc: 'Crispy shrimp, remoulade, pickles',       price: '$15.49', emoji: '🦐', tags: ['seafood','shrimp','fried'] },
+    { name: 'Meatball Parm',     desc: 'Meatballs, marinara, fresh mozzarella',   price: '$13.99', emoji: '🧀', tags: ['meatball','parm','hot'] },
+  ];
+
+  function setSearch(val) {
+    document.getElementById('search-input').value = val;
+    const params = new URLSearchParams(window.location.search);
+    params.set('q', val);
+    window.location.search = params.toString();
+  }
+
+  function doSearch(e) {
+    e.preventDefault();
+    const q = document.getElementById('search-input').value;
+    const params = new URLSearchParams(window.location.search);
+    params.set('q', q);
+    window.location.search = params.toString();
+  }
+
+  function clearSearch() {
+    window.location.href = 'search.html';
+  }
+
+  function renderResults(q) {
+    const header  = document.getElementById('results-header');
+    const grid    = document.getElementById('results-grid');
+    const noRes   = document.getElementById('no-results');
+
+    if (!q) {
+      // Show full menu with no search header
+      grid.innerHTML = MENU.map(item => menuItemHTML(item)).join('');
+      return;
+    }
+
+    // ── VULNERABILITY ────────────────────────────────────────────────
+    // User input (q) inserted via innerHTML without sanitization.
+    // An attacker can inject HTML/JS here.
+    header.innerHTML = `Showing results for: <strong>${q}</strong>`;
+    // ────────────────────────────────────────────────────────────────
+
+    const lower = q.toLowerCase();
+    const matches = MENU.filter(item =>
+      item.name.toLowerCase().includes(lower) ||
+      item.desc.toLowerCase().includes(lower) ||
+      item.tags.some(t => t.includes(lower))
+    );
+
+    if (matches.length === 0) {
+      grid.innerHTML = '';
+      noRes.classList.remove('hidden');
+    } else {
+      noRes.classList.add('hidden');
+      grid.innerHTML = matches.map(item => menuItemHTML(item)).join('');
+    }
+  }
+
+  function menuItemHTML(item) {
+    return `
+      <div class="menu-item">
+        <div class="menu-item-img">${item.emoji}</div>
+        <div class="menu-item-body">
+          <div class="menu-item-name">${item.name}</div>
+          <div class="menu-item-desc">${item.desc}</div>
+          <div class="menu-item-price">${item.price}</div>
+        </div>
+      </div>`;
+  }
+
+  // Expose the completion banner via a global so the XSS payload can trigger it
+  // Students can run:  document.getElementById('xss-banner').classList.remove('hidden')
+  // as part of their onerror payload to verify script execution
+  window._xssFlag = function () {
+    document.getElementById('xss-banner').classList.remove('hidden');
+  };
+
+  // Run on page load
+  const q = new URLSearchParams(window.location.search).get('q') || '';
+  document.getElementById('search-input').value = q;
+  renderResults(q);
+</script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secret Recipes — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a06">
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #6 · A06 — Vulnerable & Outdated Components      ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: Check which external libraries this page loads and their version numbers -->
+<!--                                                                  -->
+<!-- VULNERABILITY: This page loads subutils v1.2.3, which contains  -->
+<!-- a known Remote Code Execution vulnerability (CVE-2023-18912).   -->
+<!-- The parseIngredients() function uses eval() on user input.      -->
+<!-- The CVE and fix instructions are documented in the library file. -->
+
+<!-- Loading subutils v1.2.3 — KNOWN VULNERABLE (CVE-2023-18912)    -->
+<!-- TODO @dev: Upgrade to subutils >= 2.0.1 — JIRA SHOP-419        -->
+<script src="../js/subutils-1.2.3.min.js"></script>
+<!-- juice-parser v0.3.2 — KNOWN VULNERABLE (CVE-2019-11358: prototype pollution) -->
+<script src="../js/lib/juice-parser-v0.3.2.js"></script>
+
+<header class="site-header">
+  <nav class="main-nav">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <ul class="main-nav-links">
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="order.html">Order</a></li>
+      <li><a href="loyalty.html">Rewards</a></li>
+      <li><a href="#">Locations</a></li>
+      <li><a href="order.html">Catering</a></li>
+      <li><a href="../challenges.html">Challenges</a></li>
+    </ul>
+    <div class="nav-ctas">
+      <a href="login.html" class="btn-signin">Sign In</a>
+      <a href="order.html" class="btn btn-primary btn-lg">Order Now</a>
+      <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+    </div>
+  </nav>
+</header>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A06">
+  <span class="learn-tag">OWASP A06</span>
+  <strong>Vulnerable &amp; Outdated Components</strong>
+  <span>"Using outdated libraries means inheriting their unpatched vulnerabilities."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — Vulnerable Components</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The recipes page loads a third-party nutrition parsing library. Libraries carry their own vulnerabilities — check the version.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">Application integrity — a vulnerable dependency can be exploited without touching any of your own code.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Identify the vulnerable library, find its CVE, and exploit the prototype pollution vulnerability.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="page-eyebrow">RECIPES &amp; NUTRITION</div>
+    <h1>Recipes &amp; Nutrition</h1>
+    <p>Ingredient lists, allergen info, and nutritional data for every sub on our menu.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> Open DevTools → Sources tab and look at what JavaScript libraries are loaded.</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> Read the comments at the top of the library files. Any CVE numbers?</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> The prototype pollution test: parse <code>{"__proto__":{"isAdmin":true}}</code> and check <code>({}).isAdmin</code> in console.</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">1. Open Sources → find <code>juice-parser-v0.3.2.js</code>. 2. Read the CVE comment at the top. 3. In the ingredient parser, enter <code>{"__proto__":{"isAdmin":true}}</code>. 4. Open console and type <code>({}).isAdmin</code> — it returns <code>true</code>. Prototype pollution can escalate to RCE.</div>
+    </div>
+  </div>
+
+  <!-- Recipe Viewer -->
+  <div style="display:grid;grid-template-columns:1fr 2fr;gap:1.5rem;align-items:start;">
+
+    <div class="panel">
+      <h2>Select a Sub</h2>
+      <div id="recipe-list" style="display:flex;flex-direction:column;gap:0.4rem;"></div>
+    </div>
+
+    <div class="panel" id="recipe-detail">
+      <div style="color:var(--text-muted);font-size:0.9rem;padding:1rem 0;">
+        ← Select a sub to view its recipe and nutritional information.
+      </div>
+    </div>
+  </div>
+
+  <!-- CVE Demo Section -->
+  <div class="panel mt-3" style="background:var(--surface-2);">
+    <h2>Ingredient Parser Tool <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-muted);font-weight:400;">powered by subutils v1.2.3</span></h2>
+    <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:1rem;">
+      Paste a raw ingredient object to parse it through our ingredient processing engine.
+    </p>
+    <div class="form-group">
+      <label>Raw Ingredient String</label>
+      <textarea id="ingredient-input" rows="3" placeholder='{"name":"provolone","allergens":["dairy"],"calories":80}'></textarea>
+    </div>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="parseIngredient()">Parse Ingredient</button>
+      <button class="btn btn-ghost" onclick="injectPayload()">Try CVE Payload</button>
+    </div>
+    <pre id="parse-output" style="margin-top:1rem;display:none;"></pre>
+
+    <div id="cve-banner" class="hidden admin-section" style="margin-top:1.5rem;">
+      <div class="alert alert-danger">
+        🚨 &nbsp;<strong>CVE-2023-18912 Demonstrated.</strong>
+        <code>SubUtils.parseIngredients()</code> passed your input to <code>eval()</code>. Arbitrary JS executed.
+        In a server-side context, this would be remote code execution.
+      </div>
+      <button class="btn btn-primary" onclick="SubShop.markComplete(6)">
+        ✓ &nbsp;Mark Challenge #6 Complete
+      </button>
+    </div>
+  </div>
+
+  <!-- Library Info -->
+  <div class="panel">
+    <h2>Loaded Dependencies</h2>
+    <table class="data-table">
+      <thead><tr><th>Library</th><th>Version</th><th>Status</th><th>CVE</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>subutils</code></td>
+          <td id="lib-version">—</td>
+          <td><span class="text-danger">⚠ Vulnerable</span></td>
+          <td><a href="#" style="color:var(--danger);font-size:0.82rem;" onclick="showCveInfo(event)">CVE-2023-18912 (CVSS 9.8)</a></td>
+        </tr>
+      </tbody>
+    </table>
+    <div id="cve-info" class="hidden" style="margin-top:1rem;">
+      <div class="alert alert-danger">
+        <strong>CVE-2023-18912 — Critical RCE in subutils &lt;= 1.4.0</strong><br>
+        <code>parseIngredients()</code> uses <code>eval()</code> on unsanitized input. An attacker who can
+        supply an ingredient string can execute arbitrary JavaScript.<br>
+        <strong>Fix:</strong> Upgrade to <code>subutils >= 2.0.1</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">Using outdated libraries means inheriting their unpatched vulnerabilities. Even if your code is perfect, a vulnerable dependency can give attackers a way in.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> Taking expired medication because "it probably still works" — the side effects are unpredictable and dangerous.</p>
+      <p class="eli5-real"><strong>Real world:</strong> CVE-2019-11358 — jQuery prototype pollution affecting thousands of sites worldwide.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div class="page-footer-inner">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <div class="page-footer-links">
+      <a href="menu.html">Menu</a>
+      <a href="order.html">Order</a>
+      <a href="loyalty.html">Rewards</a>
+      <a href="#">Locations</a>
+      <a href="feedback.html">Contact</a>
+    </div>
+    <div class="page-footer-copy">&copy; 2025 The Sub Shop LLC &mdash; All Rights Reserved<br><a href="../challenges.html" class="lab-link">🔐</a></div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY: This page loads subutils v1.2.3, which uses eval()
+  // in its parseIngredients() function (CVE-2023-18912, CVSS 9.8).
+  //
+  // Exploit via the ingredient parser:
+  //   SubUtils.parseIngredients('(function(){alert("RCE via CVE-2023-18912")})()')
+  //
+  // Fix: Upgrade subutils to >= 2.0.1 and run  npm audit  regularly.
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Display library version from loaded script
+  if (typeof SubUtils !== 'undefined') {
+    document.getElementById('lib-version').innerHTML =
+      '<span class="text-danger">' + SubUtils.getVersion() + '</span>';
+  }
+
+  const RECIPES = [
+    {
+      name: 'Classic Italian',
+      emoji: '🥖',
+      ingredients: '{"name":"Classic Italian","items":["salami","pepperoni","capicola","provolone","lettuce","tomato","hot peppers","red wine vinegar","olive oil"],"allergens":["dairy","gluten"],"calories":620}',
+      nutrition: { calories: 620, protein: '34g', fat: '28g', carbs: '55g', sodium: '1480mg' }
+    },
+    {
+      name: 'Veggie Delight',
+      emoji: '🍅',
+      ingredients: '{"name":"Veggie Delight","items":["roasted peppers","cucumber","avocado","spinach","feta","balsamic glaze","olive oil"],"allergens":["dairy","gluten"],"calories":420}',
+      nutrition: { calories: 420, protein: '14g', fat: '18g', carbs: '52g', sodium: '780mg' }
+    },
+    {
+      name: 'Turkey Club',
+      emoji: '🍗',
+      ingredients: '{"name":"Turkey Club","items":["roasted turkey","bacon","swiss cheese","avocado","lettuce","tomato","mayo"],"allergens":["dairy","gluten","eggs"],"calories":580}',
+      nutrition: { calories: 580, protein: '38g', fat: '24g', carbs: '50g', sodium: '1240mg' }
+    },
+  ];
+
+  // Render recipe list
+  const listEl = document.getElementById('recipe-list');
+  RECIPES.forEach((r, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost';
+    btn.style.justifyContent = 'flex-start';
+    btn.textContent = r.emoji + '  ' + r.name;
+    btn.onclick = () => showRecipe(i);
+    listEl.appendChild(btn);
+  });
+
+  function showRecipe(idx) {
+    const r = RECIPES[idx];
+    const detail = document.getElementById('recipe-detail');
+    // Use SubUtils to parse ingredients (the vulnerable function)
+    const parsed = SubUtils.parseIngredients(r.ingredients);
+    const items  = parsed ? parsed.items.map(i => `<li>${i}</li>`).join('') : '<li>Parse error</li>';
+    const allergens = parsed ? parsed.allergens.join(', ') : '—';
+
+    detail.innerHTML = `
+      <h2>${r.emoji}&ensp;${r.name}</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1rem;">
+        <div>
+          <div class="token-label" style="margin-bottom:0.5rem;">Ingredients</div>
+          <ul style="padding-left:1.25rem;color:var(--text-muted);font-size:0.88rem;line-height:2;">${items}</ul>
+          <div style="margin-top:0.75rem;"><span class="token-label">Allergens:</span>
+            <span style="font-size:0.82rem;color:var(--warning);">${allergens}</span></div>
+        </div>
+        <div>
+          <div class="token-label" style="margin-bottom:0.5rem;">Nutrition (12")</div>
+          ${Object.entries(r.nutrition).map(([k,v]) =>
+            `<div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid var(--border);font-size:0.85rem;">
+              <span style="color:var(--text-muted);text-transform:capitalize;">${k}</span>
+              <span style="font-family:'JetBrains Mono',monospace;color:var(--accent);">${v}</span>
+            </div>`
+          ).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function parseIngredient() {
+    const raw = document.getElementById('ingredient-input').value.trim();
+    if (!raw) return;
+    const out = document.getElementById('parse-output');
+    out.style.display = 'block';
+    // Calls the vulnerable SubUtils.parseIngredients() — uses eval() internally
+    const result = SubUtils.parseIngredients(raw);
+    out.textContent = result ? JSON.stringify(result, null, 2) : 'null (parse error)';
+  }
+
+  // Demonstrate the CVE — inserts a benign JS payload that just alerts and shows the banner
+  function injectPayload() {
+    const payload = `(function(){ alert("CVE-2023-18912: eval() executed!\\nArbitrary JS ran via subutils v${SubUtils.version}"); document.getElementById('cve-banner').classList.remove('hidden'); })()`;
+    document.getElementById('ingredient-input').value = payload;
+    parseIngredient();
+  }
+
+  function showCveInfo(e) {
+    e.preventDefault();
+    document.getElementById('cve-info').classList.toggle('hidden');
+  }
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>

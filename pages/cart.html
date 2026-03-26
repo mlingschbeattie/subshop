@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Cart — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #8 · A08 — Software & Data Integrity Failures    ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: Where does the cart data actually come from?              -->
+<!-- HINT: Open DevTools → Application → Local Storage → this origin -->
+<!-- HINT: Find the key "subshop_cart" — what's in it?              -->
+<!-- HINT: Edit the value directly. What happens when you reload?    -->
+<!--                                                                  -->
+<!-- VULNERABILITY: Cart contents AND prices are stored in           -->
+<!-- localStorage with no server-side signature or verification.     -->
+<!-- Any user can open DevTools, change prices to $0, add fake       -->
+<!-- items, or set quantities to -1 to generate a negative total.    -->
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html">Order</a></li>
+    <li><a href="loyalty.html">Rewards</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Staff Portal</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <div class="owasp-badge">A08 · Challenge #8 · Data Integrity Failures</div>
+    <h1>Your Cart</h1>
+    <p>Review your order before checkout. Prices are loaded from your session.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;align-items:start;">
+
+    <!-- Cart Items -->
+    <div class="panel">
+      <h2>Order Summary</h2>
+      <div id="cart-items">
+        <div style="color:var(--text-muted);font-size:0.9rem;padding:1rem 0;">Loading cart…</div>
+      </div>
+      <div class="cart-total">
+        <span style="font-weight:600;">Total</span>
+        <span class="cart-total-price" id="cart-total">$0.00</span>
+      </div>
+
+      <!-- Tampering detected warning -->
+      <div id="tamper-warn" class="alert alert-danger hidden" style="margin-top:1rem;">
+        🚨 &nbsp;<strong>Cart Integrity Failure Detected.</strong>
+        The cart in localStorage was modified outside the app. The total does not match expected values.
+        In a real system, the backend would have accepted these tampered prices.
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="checkout-btn" onclick="checkout()">Checkout →</button>
+        <button class="btn btn-ghost"   onclick="resetCart()">Reset Cart</button>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div>
+      <div class="panel">
+        <h2>How to Exploit</h2>
+        <ol style="padding-left:1.25rem;color:var(--text-muted);font-size:0.85rem;line-height:2.2;">
+          <li>Open DevTools (F12)</li>
+          <li>Go to <strong style="color:var(--text);">Application</strong> tab</li>
+          <li>Expand <strong style="color:var(--text);">Local Storage → this origin</strong></li>
+          <li>Find key <code>subshop_cart</code></li>
+          <li>Edit any <code>"price"</code> value to <code>0</code></li>
+          <li>Press <strong style="color:var(--text);">F5</strong> to reload</li>
+        </ol>
+        <div class="alert alert-info" style="margin-top:1rem;font-size:0.82rem;">
+          Or paste into the Console:<br>
+          <code style="font-size:0.72rem;word-break:break-all;">localStorage.setItem('subshop_cart', JSON.stringify([{name:'Free Sub',price:0,qty:1}])); location.reload();</code>
+        </div>
+      </div>
+
+      <div class="panel" id="complete-section" style="display:none;">
+        <div class="alert alert-warning" style="margin-bottom:1rem;">
+          Cart tampered successfully — challenge complete!
+        </div>
+        <button class="btn btn-primary" onclick="SubShop.markComplete(8)">
+          ✓ &nbsp;Mark Challenge #8 Complete
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="../index.html">← Challenge Board</a>
+</footer>
+
+<script src="../js/main.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY: Cart is loaded directly from localStorage.
+  // Prices are stored alongside item names — no server-side integrity
+  // check, no HMAC signature, no server lookup of canonical prices.
+  //
+  // An attacker (or any curious user) can:
+  //   1. Open DevTools → Application → LocalStorage
+  //   2. Edit subshop_cart JSON to set any price to 0 or negative
+  //   3. Reload: the total updates, and "checkout" processes the tampered total
+  //
+  // Fix: Cart IDs should reference server-side item records. Price is
+  // computed server-side at checkout time. Optionally use a signed cart
+  // token (HMAC) to detect client-side tampering.
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Canonical server-side prices (what a real server would look up)
+  const CANONICAL_PRICES = {
+    'Classic Italian':    12.99,
+    'Turkey Club':        13.49,
+    'Philly Cheesesteak': 14.99,
+    'Veggie Delight':     10.99,
+    'Shrimp Po\'Boy':     15.49,
+    'Meatball Parm':      13.99,
+  };
+
+  // Seed a default cart on first visit
+  function seedCart() {
+    const defaultCart = [
+      { name: 'Classic Italian',    price: 12.99, qty: 1 },
+      { name: 'Turkey Club',        price: 13.49, qty: 2 },
+      { name: 'Philly Cheesesteak', price: 14.99, qty: 1 },
+    ];
+    localStorage.setItem('subshop_cart', JSON.stringify(defaultCart));
+    return defaultCart;
+  }
+
+  function loadCart() {
+    try {
+      const raw = localStorage.getItem('subshop_cart');
+      return raw ? JSON.parse(raw) : seedCart();
+    } catch(e) {
+      return seedCart();
+    }
+  }
+
+  function renderCart() {
+    const cart     = loadCart();
+    const itemsEl  = document.getElementById('cart-items');
+    const totalEl  = document.getElementById('cart-total');
+    let   total    = 0;
+    let   tampered = false;
+
+    itemsEl.innerHTML = '';
+    cart.forEach(item => {
+      const lineTotal = (item.price * item.qty);
+      total += lineTotal;
+
+      const canonical = CANONICAL_PRICES[item.name];
+      if (canonical !== undefined && item.price !== canonical) tampered = true;
+      if (!CANONICAL_PRICES[item.name]) tampered = true; // unknown item
+
+      const row = document.createElement('div');
+      row.className = 'cart-item';
+      const priceColor = (canonical && item.price < canonical) ? 'var(--danger)' : 'var(--accent)';
+      row.innerHTML = `
+        <span class="cart-item-name">${item.name}</span>
+        <span class="cart-item-qty">× ${item.qty}</span>
+        <span class="cart-item-price" style="color:${priceColor};">
+          $${lineTotal.toFixed(2)}
+          ${canonical && item.price !== canonical
+            ? `<span style="font-size:0.68rem;color:var(--danger);display:block;">was $${(canonical*item.qty).toFixed(2)}</span>`
+            : ''}
+        </span>
+      `;
+      itemsEl.appendChild(row);
+    });
+
+    totalEl.textContent = '$' + total.toFixed(2);
+
+    if (tampered) {
+      document.getElementById('tamper-warn').classList.remove('hidden');
+      document.getElementById('complete-section').style.display = 'block';
+    }
+  }
+
+  function checkout() {
+    const cart  = loadCart();
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    alert(
+      'Order placed!\n\n' +
+      cart.map(i => `${i.name} × ${i.qty}  $${(i.price * i.qty).toFixed(2)}`).join('\n') +
+      '\n─────────────\nTotal charged: $' + total.toFixed(2) +
+      '\n\n(In a real backend, this tampered total would have been billed.)'
+    );
+  }
+
+  function resetCart() {
+    seedCart();
+    renderCart();
+    document.getElementById('tamper-warn').classList.add('hidden');
+    document.getElementById('complete-section').style.display = 'none';
+  }
+
+  renderCart();
+</script>
+</body>
+</html>

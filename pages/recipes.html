@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secret Recipes — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #6 · A06 — Vulnerable & Outdated Components      ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: Check what JavaScript libraries are loaded on this page.  -->
+<!-- HINT: Open DevTools → Sources tab and look at the scripts.      -->
+<!-- HINT: Read the comments at the top of subutils-1.2.3.min.js     -->
+<!--                                                                  -->
+<!-- VULNERABILITY: This page loads subutils v1.2.3, which contains  -->
+<!-- a known Remote Code Execution vulnerability (CVE-2023-18912).   -->
+<!-- The parseIngredients() function uses eval() on user input.      -->
+<!-- The CVE and fix instructions are documented in the library file. -->
+
+<!-- Loading subutils v1.2.3 — KNOWN VULNERABLE (CVE-2023-18912)    -->
+<!-- TODO @dev: Upgrade to subutils >= 2.0.1 — JIRA SHOP-419        -->
+<script src="../js/subutils-1.2.3.min.js"></script>
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html">Order</a></li>
+    <li><a href="loyalty.html">Rewards</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Staff Portal</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <div class="owasp-badge">A06 · Challenge #6 · Vulnerable &amp; Outdated Components</div>
+    <h1>Recipes &amp; Nutrition</h1>
+    <p>Ingredient lists, allergen info, and nutritional data for every sub on our menu.</p>
+  </div>
+
+  <!-- Recipe Viewer -->
+  <div style="display:grid;grid-template-columns:1fr 2fr;gap:1.5rem;align-items:start;">
+
+    <div class="panel">
+      <h2>Select a Sub</h2>
+      <div id="recipe-list" style="display:flex;flex-direction:column;gap:0.4rem;"></div>
+    </div>
+
+    <div class="panel" id="recipe-detail">
+      <div style="color:var(--text-muted);font-size:0.9rem;padding:1rem 0;">
+        ← Select a sub to view its recipe and nutritional information.
+      </div>
+    </div>
+  </div>
+
+  <!-- CVE Demo Section -->
+  <div class="panel mt-3" style="background:var(--surface-2);">
+    <h2>Ingredient Parser Tool <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-muted);font-weight:400;">powered by subutils v1.2.3</span></h2>
+    <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:1rem;">
+      Paste a raw ingredient object to parse it through our ingredient processing engine.
+    </p>
+    <div class="form-group">
+      <label>Raw Ingredient String</label>
+      <textarea id="ingredient-input" rows="3" placeholder='{"name":"provolone","allergens":["dairy"],"calories":80}'></textarea>
+    </div>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="parseIngredient()">Parse Ingredient</button>
+      <button class="btn btn-ghost" onclick="injectPayload()">Try CVE Payload</button>
+    </div>
+    <pre id="parse-output" style="margin-top:1rem;display:none;"></pre>
+
+    <div id="cve-banner" class="hidden admin-section" style="margin-top:1.5rem;">
+      <div class="alert alert-danger">
+        🚨 &nbsp;<strong>CVE-2023-18912 Demonstrated.</strong>
+        <code>SubUtils.parseIngredients()</code> passed your input to <code>eval()</code>. Arbitrary JS executed.
+        In a server-side context, this would be remote code execution.
+      </div>
+      <button class="btn btn-primary" onclick="SubShop.markComplete(6)">
+        ✓ &nbsp;Mark Challenge #6 Complete
+      </button>
+    </div>
+  </div>
+
+  <!-- Library Info -->
+  <div class="panel">
+    <h2>Loaded Dependencies</h2>
+    <table class="data-table">
+      <thead><tr><th>Library</th><th>Version</th><th>Status</th><th>CVE</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>subutils</code></td>
+          <td id="lib-version">—</td>
+          <td><span class="text-danger">⚠ Vulnerable</span></td>
+          <td><a href="#" style="color:var(--danger);font-size:0.82rem;" onclick="showCveInfo(event)">CVE-2023-18912 (CVSS 9.8)</a></td>
+        </tr>
+      </tbody>
+    </table>
+    <div id="cve-info" class="hidden" style="margin-top:1rem;">
+      <div class="alert alert-danger">
+        <strong>CVE-2023-18912 — Critical RCE in subutils &lt;= 1.4.0</strong><br>
+        <code>parseIngredients()</code> uses <code>eval()</code> on unsanitized input. An attacker who can
+        supply an ingredient string can execute arbitrary JavaScript.<br>
+        <strong>Fix:</strong> Upgrade to <code>subutils >= 2.0.1</code>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="../index.html">← Challenge Board</a>
+</footer>
+
+<script src="../js/main.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY: This page loads subutils v1.2.3, which uses eval()
+  // in its parseIngredients() function (CVE-2023-18912, CVSS 9.8).
+  //
+  // Exploit via the ingredient parser:
+  //   SubUtils.parseIngredients('(function(){alert("RCE via CVE-2023-18912")})()')
+  //
+  // Fix: Upgrade subutils to >= 2.0.1 and run  npm audit  regularly.
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Display library version from loaded script
+  if (typeof SubUtils !== 'undefined') {
+    document.getElementById('lib-version').innerHTML =
+      '<span class="text-danger">' + SubUtils.getVersion() + '</span>';
+  }
+
+  const RECIPES = [
+    {
+      name: 'Classic Italian',
+      emoji: '🥖',
+      ingredients: '{"name":"Classic Italian","items":["salami","pepperoni","capicola","provolone","lettuce","tomato","hot peppers","red wine vinegar","olive oil"],"allergens":["dairy","gluten"],"calories":620}',
+      nutrition: { calories: 620, protein: '34g', fat: '28g', carbs: '55g', sodium: '1480mg' }
+    },
+    {
+      name: 'Veggie Delight',
+      emoji: '🍅',
+      ingredients: '{"name":"Veggie Delight","items":["roasted peppers","cucumber","avocado","spinach","feta","balsamic glaze","olive oil"],"allergens":["dairy","gluten"],"calories":420}',
+      nutrition: { calories: 420, protein: '14g', fat: '18g', carbs: '52g', sodium: '780mg' }
+    },
+    {
+      name: 'Turkey Club',
+      emoji: '🍗',
+      ingredients: '{"name":"Turkey Club","items":["roasted turkey","bacon","swiss cheese","avocado","lettuce","tomato","mayo"],"allergens":["dairy","gluten","eggs"],"calories":580}',
+      nutrition: { calories: 580, protein: '38g', fat: '24g', carbs: '50g', sodium: '1240mg' }
+    },
+  ];
+
+  // Render recipe list
+  const listEl = document.getElementById('recipe-list');
+  RECIPES.forEach((r, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost';
+    btn.style.justifyContent = 'flex-start';
+    btn.textContent = r.emoji + '  ' + r.name;
+    btn.onclick = () => showRecipe(i);
+    listEl.appendChild(btn);
+  });
+
+  function showRecipe(idx) {
+    const r = RECIPES[idx];
+    const detail = document.getElementById('recipe-detail');
+    // Use SubUtils to parse ingredients (the vulnerable function)
+    const parsed = SubUtils.parseIngredients(r.ingredients);
+    const items  = parsed ? parsed.items.map(i => `<li>${i}</li>`).join('') : '<li>Parse error</li>';
+    const allergens = parsed ? parsed.allergens.join(', ') : '—';
+
+    detail.innerHTML = `
+      <h2>${r.emoji}&ensp;${r.name}</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1rem;">
+        <div>
+          <div class="token-label" style="margin-bottom:0.5rem;">Ingredients</div>
+          <ul style="padding-left:1.25rem;color:var(--text-muted);font-size:0.88rem;line-height:2;">${items}</ul>
+          <div style="margin-top:0.75rem;"><span class="token-label">Allergens:</span>
+            <span style="font-size:0.82rem;color:var(--warning);">${allergens}</span></div>
+        </div>
+        <div>
+          <div class="token-label" style="margin-bottom:0.5rem;">Nutrition (12")</div>
+          ${Object.entries(r.nutrition).map(([k,v]) =>
+            `<div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid var(--border);font-size:0.85rem;">
+              <span style="color:var(--text-muted);text-transform:capitalize;">${k}</span>
+              <span style="font-family:'JetBrains Mono',monospace;color:var(--accent);">${v}</span>
+            </div>`
+          ).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function parseIngredient() {
+    const raw = document.getElementById('ingredient-input').value.trim();
+    if (!raw) return;
+    const out = document.getElementById('parse-output');
+    out.style.display = 'block';
+    // Calls the vulnerable SubUtils.parseIngredients() — uses eval() internally
+    const result = SubUtils.parseIngredients(raw);
+    out.textContent = result ? JSON.stringify(result, null, 2) : 'null (parse error)';
+  }
+
+  // Demonstrate the CVE — inserts a benign JS payload that just alerts and shows the banner
+  function injectPayload() {
+    const payload = `(function(){ alert("CVE-2023-18912: eval() executed!\\nArbitrary JS ran via subutils v${SubUtils.version}"); document.getElementById('cve-banner').classList.remove('hidden'); })()`;
+    document.getElementById('ingredient-input').value = payload;
+    parseIngredient();
+  }
+
+  function showCveInfo(e) {
+    e.preventDefault();
+    document.getElementById('cve-info').classList.toggle('hidden');
+  }
+</script>
+</body>
+</html>

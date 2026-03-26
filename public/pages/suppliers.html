@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supplier Portal — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a10">
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #10 · A10 — Server-Side Request Forgery (SSRF)   ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: This page asks the SERVER to fetch a URL. What internal URLs could you target? -->
+<!--                                                                  -->
+<!-- VULNERABILITY: The user-supplied URL is passed directly to      -->
+<!-- fetch() with zero validation or allowlist checking. In a        -->
+<!-- server-side equivalent, this allows an attacker to reach        -->
+<!-- internal services (metadata APIs, databases, internal HTTP).    -->
+<!-- In this client-side demo, the browser enforces CORS — but       -->
+<!-- on a server, no such protection exists.                         -->
+
+<header class="site-header">
+  <nav class="main-nav">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <ul class="main-nav-links">
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="order.html">Order</a></li>
+      <li><a href="loyalty.html">Rewards</a></li>
+      <li><a href="#">Locations</a></li>
+      <li><a href="order.html">Catering</a></li>
+      <li><a href="../challenges.html">Challenges</a></li>
+    </ul>
+    <div class="nav-ctas">
+      <a href="login.html" class="btn-signin">Sign In</a>
+      <a href="order.html" class="btn btn-primary btn-lg">Order Now</a>
+      <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+    </div>
+  </nav>
+</header>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A10">
+  <span class="learn-tag">OWASP A10</span>
+  <strong>Server-Side Request Forgery (SSRF)</strong>
+  <span>"When a server fetches URLs on behalf of users, attackers can redirect it to internal systems."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — Server-Side Request Forgery</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The supplier portal fetches data from URLs provided by the user. The server trusts whatever URL you give it.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">Internal services — the server can be tricked into accessing its own internal endpoints and exposing data.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Craft a URL that makes the server fetch an internal resource it was never meant to expose to users.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="page-eyebrow">SUPPLIER NETWORK</div>
+    <h1>Supplier Portal</h1>
+    <p>Check inventory availability and delivery status from our supplier network.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> This page fetches a URL from the server. What URL does it fetch?</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> Try entering <code>http://localhost:3001/api/admin</code> as the URL.</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> The server fetches the URL for you — including internal endpoints normally blocked from browsers.</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">Enter <code>http://localhost:3001/api/admin</code> or <code>http://localhost:3001/api/user/1</code> in the URL field. The server fetches it internally and returns the response — bypassing access controls. You can also try <code>http://169.254.169.254/latest/meta-data/</code> for cloud metadata.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;align-items:start;">
+
+    <!-- Fetch Tool -->
+    <div class="panel">
+      <h2>Check Supplier Feed</h2>
+      <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:1.25rem;">
+        Enter your supplier's API endpoint URL below. Our system will fetch the current inventory status.
+      </p>
+      <!-- VULNERABILITY: URL input feeds directly into fetch() — no allowlist, no hostname check -->
+      <div class="form-group">
+        <label>Supplier URL</label>
+        <input type="url" id="supplier-url" placeholder="https://supplier.example.com/api/inventory"
+               value="https://supplier.example.com/api/inventory">
+      </div>
+      <div class="form-group">
+        <label>Supplier Name</label>
+        <input type="text" id="supplier-name" placeholder="e.g. Fresh Farms Co." value="Fresh Farms Co.">
+      </div>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.25rem;">
+        <button class="btn btn-primary" onclick="checkSupplier()">Fetch Status</button>
+        <button class="btn btn-ghost" onclick="setUrl('http://localhost')">Try localhost</button>
+        <button class="btn btn-ghost" onclick="setUrl('http://127.0.0.1:8080')">Try 127.0.0.1:8080</button>
+        <button class="btn btn-ghost" onclick="setUrl('http://169.254.169.254/latest/meta-data/')">Try AWS Metadata</button>
+      </div>
+
+      <!-- Response Output -->
+      <div id="fetch-status" style="margin-top:1rem;font-size:0.82rem;color:var(--text-muted);"></div>
+      <div id="fetch-output" class="fetch-output hidden"></div>
+
+      <!-- Challenge complete after SSRF attempt -->
+      <div id="ssrf-banner" class="hidden admin-section" style="margin-top:1.5rem;">
+        <div class="alert alert-warning">
+          🔁 &nbsp;<strong>SSRF Demonstrated.</strong>
+          A user-controlled URL was passed to <code>fetch()</code> with no validation.
+          The browser's CORS policy blocked the response content here — but on a real
+          server-side implementation (Node.js, Python, Java), the server would silently
+          forward this request and return internal data to the attacker.
+        </div>
+        <button class="btn btn-primary mt-2" onclick="SubShop.markComplete(10)">
+          ✓ &nbsp;Mark Challenge #10 Complete
+        </button>
+      </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div>
+      <div class="panel">
+        <h2>What is SSRF?</h2>
+        <p style="color:var(--text-muted);font-size:0.85rem;line-height:1.8;margin-bottom:1rem;">
+          Server-Side Request Forgery (SSRF) occurs when an application fetches a remote resource
+          using a URL supplied by the user — without validating that URL against an allowlist.
+        </p>
+        <p style="color:var(--text-muted);font-size:0.85rem;line-height:1.8;margin-bottom:1rem;">
+          An attacker can redirect the server to:
+        </p>
+        <ul style="padding-left:1.25rem;color:var(--text-muted);font-size:0.85rem;line-height:2;">
+          <li>Internal services (<code>http://localhost:6379</code> — Redis)</li>
+          <li>Cloud metadata APIs (<code>http://169.254.169.254/</code>)</li>
+          <li>Private network hosts</li>
+          <li>Local files via <code>file:///etc/passwd</code></li>
+        </ul>
+      </div>
+
+      <div class="panel" style="background:var(--surface-2);">
+        <h2>Payloads to Try</h2>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <button class="btn btn-ghost" onclick="setUrl('http://localhost')" style="justify-content:flex-start;font-size:0.8rem;">http://localhost</button>
+          <button class="btn btn-ghost" onclick="setUrl('http://127.0.0.1:8080/admin')" style="justify-content:flex-start;font-size:0.8rem;">http://127.0.0.1:8080/admin</button>
+          <button class="btn btn-ghost" onclick="setUrl('http://169.254.169.254/latest/meta-data/iam/security-credentials/')" style="justify-content:flex-start;font-size:0.8rem;">AWS IMDSv1 — IAM credentials</button>
+          <button class="btn btn-ghost" onclick="setUrl('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token')" style="justify-content:flex-start;font-size:0.8rem;">GCP Metadata token</button>
+          <button class="btn btn-ghost" onclick="setUrl('file:///etc/passwd')" style="justify-content:flex-start;font-size:0.8rem;">file:///etc/passwd</button>
+          <button class="btn btn-ghost" onclick="setUrl('http://10.0.0.1/')" style="justify-content:flex-start;font-size:0.8rem;">Internal network 10.0.0.1</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How the code works -->
+  <div class="panel mt-3">
+    <h2>Vulnerable Code</h2>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">
+      The core SSRF flaw — user URL passed directly to <code>fetch()</code>:
+    </p>
+    <pre>// VULNERABILITY: No URL validation — user controls the target
+async function checkSupplier() {
+  const url = document.getElementById('supplier-url').value;
+  // No allowlist check — any URL accepted
+  const response = await fetch(url);
+  const text = await response.text();
+  displayOutput(text);
+}</pre>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-top:1rem;">
+      <strong style="color:var(--text);">Fix:</strong> Validate the URL against a strict allowlist of known supplier domains
+      before fetching. Reject private IPs, <code>localhost</code>, and non-HTTPS schemes at the server layer.
+    </p>
+  </div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">When a server fetches URLs on behalf of users, attackers can redirect it to internal systems. The server has access to internal network resources the attacker can't reach directly.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> Tricking someone's assistant into calling your competitors and reading back the answers.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2019 Capital One breach — SSRF via misconfigured AWS metadata endpoint exposed 100M records.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div class="page-footer-inner">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <div class="page-footer-links">
+      <a href="menu.html">Menu</a>
+      <a href="order.html">Order</a>
+      <a href="loyalty.html">Rewards</a>
+      <a href="#">Locations</a>
+      <a href="feedback.html">Contact</a>
+    </div>
+    <div class="page-footer-copy">&copy; 2025 The Sub Shop LLC &mdash; All Rights Reserved<br><a href="../challenges.html" class="lab-link">🔐</a></div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY: User-supplied URL is passed directly to fetch() with
+  // no hostname allowlist, no scheme check, no private IP blocking.
+  //
+  // In a real server-side context (Node/Python/Java), this would allow
+  // fetching internal services: Redis, Elasticsearch, cloud metadata APIs,
+  // internal admin panels, or reading local files.
+  //
+  // Here in the browser, CORS will often block the response data, but the
+  // *request itself still fires* — the server receives it. This is
+  // demonstrated by the network errors and connection attempts visible in
+  // DevTools → Network tab.
+  //
+  // Fix: Validate URL against an explicit allowlist:
+  //   const ALLOWED = ['https://supplier-a.example.com', 'https://supplier-b.example.com'];
+  //   if (!ALLOWED.some(allowed => url.startsWith(allowed))) throw new Error('Blocked');
+  // ─────────────────────────────────────────────────────────────────────
+
+  function setUrl(url) {
+    document.getElementById('supplier-url').value = url;
+    document.getElementById('supplier-name').value = 'Attacker-Controlled Target';
+  }
+
+  async function checkSupplier() {
+    const url      = document.getElementById('supplier-url').value.trim();
+    const name     = document.getElementById('supplier-name').value.trim() || 'Unknown';
+    const statusEl = document.getElementById('fetch-status');
+    const outputEl = document.getElementById('fetch-output');
+    const banner   = document.getElementById('ssrf-banner');
+
+    if (!url) { alert('Please enter a supplier URL.'); return; }
+
+    statusEl.textContent = 'Fetching ' + url + ' …';
+    outputEl.classList.add('hidden');
+    outputEl.textContent = '';
+
+    // Detect potentially internal/SSRF targets
+    const isInternal = /localhost|127\.0|10\.\d|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|::1|file:/i.test(url);
+
+    // ── VULNERABILITY: No allowlist check — fetch fires regardless ────
+    console.log('[SubShop Supplier] Fetching URL (no validation):', url);
+
+    try {
+      const controller = new AbortController();
+      const timeout    = setTimeout(() => controller.abort(), 5000);
+      const response   = await fetch(url, { signal: controller.signal, mode: 'no-cors' });
+      clearTimeout(timeout);
+
+      statusEl.innerHTML = `<span class="text-success">✓ Request sent to: ${url}</span>`;
+      outputEl.classList.remove('hidden');
+      outputEl.textContent =
+        'HTTP Status : ' + (response.status || 'opaque — CORS blocked response body') + '\n' +
+        'Response Type: ' + response.type + '\n\n' +
+        (response.type === 'opaque'
+          ? '[ Response body hidden by browser CORS policy ]\n' +
+            'On a real server-side implementation the body would be readable.\n' +
+            'Check DevTools → Network to see the request was actually sent.'
+          : '[ Response body loaded — see below ]');
+
+      banner.classList.remove('hidden');
+      if (isInternal) {
+        console.warn('[SubShop SSRF] Internal/sensitive URL was fetched:', url);
+      }
+    } catch (err) {
+      statusEl.innerHTML = `<span class="text-danger">✗ ${err.name}: ${err.message}</span>`;
+      outputEl.classList.remove('hidden');
+      outputEl.textContent =
+        'Error: ' + err.message + '\n\n' +
+        'The request may have been blocked by CORS, firewall, or the target was unreachable.\n' +
+        'However — on a server-side implementation, this request would bypass CORS\n' +
+        'and the server would receive it and return the response to the attacker.\n\n' +
+        'Check DevTools → Network tab to confirm the request fired.';
+      banner.classList.remove('hidden'); // still demonstrate the point
+    }
+  }
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>

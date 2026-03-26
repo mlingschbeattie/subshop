@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instructor Dashboard — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+  <style>
+    .dash-container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .dash-header { margin-bottom: 2rem; }
+    .dash-header h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+    .dash-header p { color: #888; font-size: 0.85rem; }
+
+    /* Class Code Input */
+    .class-controls {
+      display: flex; align-items: center; gap: 0.75rem;
+      flex-wrap: wrap; margin-bottom: 2rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px; padding: 1rem 1.25rem;
+    }
+    .class-controls label { font-size: 0.82rem; font-weight: 600; color: #ccc; white-space: nowrap; }
+    .class-controls input {
+      background: #1a1a2e; border: 1px solid #333; color: #eee; padding: 0.5rem 0.75rem;
+      border-radius: 4px; font-size: 0.85rem; width: 200px;
+    }
+    .class-controls .btn { font-size: 0.78rem; padding: 0.5rem 1rem; }
+    .btn-sm { font-size: 0.78rem; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; border: none; }
+    .btn-primary { background: #4ade80; color: #111; font-weight: 600; }
+    .btn-secondary { background: #333; color: #ccc; }
+    .btn-danger { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .btn-sm:hover { opacity: 0.85; }
+
+    /* Stats Row */
+    .dash-stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem; margin-bottom: 2rem;
+    }
+    .dash-stat {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px; padding: 1rem; text-align: center;
+    }
+    .dash-stat-value { font-size: 1.8rem; font-weight: 700; color: #4ade80; }
+    .dash-stat-label { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.25rem; }
+
+    /* Heatmap */
+    .heatmap-section { margin-bottom: 2rem; }
+    .heatmap-section h2 { font-size: 1rem; margin-bottom: 1rem; color: #eee; }
+    .heatmap-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; overflow-x: auto; display: block; }
+    .heatmap-table th, .heatmap-table td {
+      padding: 0.5rem 0.35rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .heatmap-table th { color: #888; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; position: sticky; top: 0; background: #12121e; }
+    .heatmap-table th:first-child, .heatmap-table td:first-child { text-align: left; position: sticky; left: 0; background: #12121e; min-width: 120px; z-index: 1; }
+    .heat-cell { border-radius: 3px; padding: 0.3rem 0.4rem; display: inline-block; min-width: 20px; }
+    .heat-none { background: rgba(255,255,255,0.03); color: #444; }
+    .heat-gold { background: rgba(251,191,36,0.2); color: #fbbf24; }
+    .heat-silver { background: rgba(156,163,175,0.2); color: #9ca3af; }
+    .heat-bronze { background: rgba(217,119,6,0.2); color: #d97706; }
+    .heat-completed { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .heat-assisted { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .heat-fix { font-size: 0.7rem; }
+
+    /* Student Table */
+    .student-section { margin-bottom: 2rem; }
+    .student-section h2 { font-size: 1rem; margin-bottom: 1rem; color: #eee; }
+    .student-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .student-table th { color: #888; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .student-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.04); color: #bbb; }
+    .student-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #666; }
+    .empty-state h3 { color: #888; margin-bottom: 0.5rem; }
+    .empty-state p { font-size: 0.85rem; }
+
+    /* Poll indicator */
+    .poll-indicator { font-size: 0.72rem; color: #555; display: flex; align-items: center; gap: 0.4rem; margin-left: auto; }
+    .poll-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; animation: pulse 2s ease infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    @media (max-width: 600px) {
+      .class-controls { flex-direction: column; align-items: stretch; }
+      .class-controls input { width: 100%; }
+      .dash-stats { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <nav class="main-nav">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <ul class="main-nav-links">
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="order.html">Order</a></li>
+      <li><a href="loyalty.html">Rewards</a></li>
+      <li><a href="../challenges.html">Challenges</a></li>
+    </ul>
+  </nav>
+</header>
+
+<div class="dash-container">
+  <div class="dash-header">
+    <h1>🎓 Instructor Dashboard</h1>
+    <p>Monitor student progress, view challenge heatmaps, and manage class sessions.</p>
+  </div>
+
+  <div class="class-controls">
+    <label for="class-code-input">Class Code</label>
+    <input type="text" id="class-code-input" placeholder="e.g. SEC-101-F24" autocomplete="off" maxlength="32">
+    <button class="btn-sm btn-primary" onclick="loadClass()">Load Class</button>
+    <button class="btn-sm btn-secondary" onclick="generateCode()">Generate Code</button>
+    <button class="btn-sm btn-secondary" onclick="exportCSV()">Export CSV</button>
+    <button class="btn-sm btn-danger" onclick="confirmReset()">Reset Class</button>
+    <div class="poll-indicator" id="poll-indicator" style="display:none;">
+      <span class="poll-dot"></span> Live — refreshing every 30s
+    </div>
+  </div>
+
+  <div id="dash-content">
+    <div class="empty-state">
+      <h3>No class loaded</h3>
+      <p>Enter a class code above to view student progress, or generate a new code to share with students.</p>
+    </div>
+  </div>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const CHALLENGES = window.SubShop ? SubShop.CHALLENGES : [];
+  let _classCode = '';
+  let _data = [];
+  let _pollTimer = null;
+
+  function getInput() {
+    return document.getElementById('class-code-input').value.trim();
+  }
+
+  window.generateCode = function () {
+    const adjectives = ['RED','BLUE','DARK','FAST','ZERO','BYTE','CORE','WILD','IRON','VOID'];
+    const nouns = ['HAWK','WOLF','NODE','GATE','BOLT','LOCK','VEIL','FLUX','GRID','NEXUS'];
+    const num = Math.floor(Math.random() * 900) + 100;
+    const code = adjectives[Math.floor(Math.random() * adjectives.length)] + '-' +
+                 nouns[Math.floor(Math.random() * nouns.length)] + '-' + num;
+    document.getElementById('class-code-input').value = code;
+  };
+
+  window.loadClass = function () {
+    const code = getInput();
+    if (!code) return alert('Enter a class code first.');
+    _classCode = code;
+    fetchData();
+    // Start polling
+    clearInterval(_pollTimer);
+    _pollTimer = setInterval(fetchData, 30000);
+    document.getElementById('poll-indicator').style.display = 'flex';
+  };
+
+  function fetchData() {
+    fetch('/api/progress/' + encodeURIComponent(_classCode))
+      .then(r => r.json())
+      .then(rows => {
+        _data = rows;
+        render();
+      })
+      .catch(err => console.error('Dashboard fetch error:', err));
+  }
+
+  function render() {
+    const content = document.getElementById('dash-content');
+    if (!_data.length) {
+      content.innerHTML = `<div class="empty-state">
+        <h3>No data for "${escHtml(_classCode)}"</h3>
+        <p>Students need to join this class code in the onboarding flow. Share this code with your students.</p>
+        <p style="margin-top:1rem;font-family:'Space Mono',monospace;font-size:1.4rem;color:#4ade80;letter-spacing:0.1em;">${escHtml(_classCode)}</p>
+      </div>`;
+      return;
+    }
+
+    // Build student map
+    const students = {};
+    _data.forEach(row => {
+      if (!students[row.student_name]) students[row.student_name] = {};
+      students[row.student_name][row.challenge_id] = row;
+    });
+    const studentNames = Object.keys(students).sort();
+
+    // Stats
+    const totalSolves = _data.filter(r => r.solved_at).length;
+    const totalFixes = _data.filter(r => r.fix_submitted).length;
+    const avgHints = _data.length ? (_data.reduce((s, r) => s + (r.hints_used || 0), 0) / _data.length).toFixed(1) : '0';
+    const avgTime = _data.filter(r => r.time_spent_seconds > 0).length
+      ? Math.round(_data.filter(r => r.time_spent_seconds > 0).reduce((s, r) => s + r.time_spent_seconds, 0) / _data.filter(r => r.time_spent_seconds > 0).length)
+      : 0;
+
+    // Challenge columns (use short IDs)
+    const challengeIds = CHALLENGES.map(c => {
+      // Map numeric IDs to string IDs used in progress table
+      const idMap = {1:'a01',2:'a02',3:'a03-dom',4:'a04',5:'a05',6:'a06',7:'a07',8:'a08',9:'a09',10:'a10',11:'a03-sqli',12:'a01-idor',13:'a03-stored-xss'};
+      return { numId: c.id, strId: idMap[c.id], owasp: c.owasp, name: c.name };
+    });
+
+    let heatmapRows = '';
+    studentNames.forEach(name => {
+      let cells = '';
+      challengeIds.forEach(ch => {
+        const rec = students[name][ch.strId];
+        if (!rec || !rec.solved_at) {
+          cells += '<td><span class="heat-cell heat-none">—</span></td>';
+        } else {
+          const hints = rec.hints_used || 0;
+          let cls = 'heat-completed';
+          let label = '✓';
+          if (hints === 0) { cls = 'heat-gold'; label = '★'; }
+          else if (hints === 1) { cls = 'heat-silver'; label = '✓'; }
+          else if (hints === 2) { cls = 'heat-bronze'; label = '✓'; }
+          else { cls = 'heat-assisted'; label = '✓'; }
+          const fix = rec.fix_submitted ? ' <span class="heat-fix">🔧</span>' : '';
+          cells += `<td><span class="heat-cell ${cls}">${label}</span>${fix}</td>`;
+        }
+      });
+      const solved = challengeIds.filter(ch => {
+        const rec = students[name][ch.strId];
+        return rec && rec.solved_at;
+      }).length;
+      heatmapRows += `<tr><td>${escHtml(name)}</td>${cells}<td>${solved}/${CHALLENGES.length}</td></tr>`;
+    });
+
+    // Student detail table
+    let studentDetailRows = '';
+    _data.filter(r => r.solved_at).sort((a, b) => a.solved_at < b.solved_at ? 1 : -1).slice(0, 50).forEach(row => {
+      const ch = CHALLENGES.find(c => {
+        const idMap = {1:'a01',2:'a02',3:'a03-dom',4:'a04',5:'a05',6:'a06',7:'a07',8:'a08',9:'a09',10:'a10',11:'a03-sqli',12:'a01-idor',13:'a03-stored-xss'};
+        return idMap[c.id] === row.challenge_id;
+      });
+      const time = row.time_spent_seconds ? formatTime(row.time_spent_seconds) : '—';
+      studentDetailRows += `<tr>
+        <td>${escHtml(row.student_name)}</td>
+        <td>${ch ? ch.owasp + ' — ' + ch.name : row.challenge_id}</td>
+        <td>${row.hints_used || 0}</td>
+        <td>${time}</td>
+        <td>${row.fix_submitted ? '🔧 Yes' : '—'}</td>
+        <td>${row.solved_at || '—'}</td>
+      </tr>`;
+    });
+
+    content.innerHTML = `
+      <div class="dash-stats">
+        <div class="dash-stat"><div class="dash-stat-value">${studentNames.length}</div><div class="dash-stat-label">Students</div></div>
+        <div class="dash-stat"><div class="dash-stat-value">${totalSolves}</div><div class="dash-stat-label">Total Solves</div></div>
+        <div class="dash-stat"><div class="dash-stat-value">${totalFixes}</div><div class="dash-stat-label">Fixes Submitted</div></div>
+        <div class="dash-stat"><div class="dash-stat-value">${avgHints}</div><div class="dash-stat-label">Avg Hints/Challenge</div></div>
+        <div class="dash-stat"><div class="dash-stat-value">${avgTime ? formatTime(avgTime) : '—'}</div><div class="dash-stat-label">Avg Time</div></div>
+      </div>
+
+      <div class="heatmap-section">
+        <h2>Challenge Heatmap</h2>
+        <div style="overflow-x:auto;">
+          <table class="heatmap-table">
+            <thead><tr>
+              <th>Student</th>
+              ${challengeIds.map(ch => `<th title="${ch.name}">${ch.owasp}</th>`).join('')}
+              <th>Total</th>
+            </tr></thead>
+            <tbody>${heatmapRows}</tbody>
+          </table>
+        </div>
+        <div style="margin-top:0.75rem;font-size:0.7rem;color:#666;display:flex;gap:1rem;flex-wrap:wrap;">
+          <span><span class="heat-cell heat-gold">★</span> Gold (0 hints)</span>
+          <span><span class="heat-cell heat-silver">✓</span> Silver (1 hint)</span>
+          <span><span class="heat-cell heat-bronze">✓</span> Bronze (2 hints)</span>
+          <span><span class="heat-cell heat-assisted">✓</span> Assisted (3+ hints)</span>
+          <span>🔧 Fix submitted</span>
+        </div>
+      </div>
+
+      <div class="student-section">
+        <h2>Recent Activity</h2>
+        <table class="student-table">
+          <thead><tr>
+            <th>Student</th><th>Challenge</th><th>Hints</th><th>Time</th><th>Fix</th><th>Solved At</th>
+          </tr></thead>
+          <tbody>${studentDetailRows || '<tr><td colspan="6" style="color:#555;text-align:center;">No solves recorded yet</td></tr>'}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  window.exportCSV = function () {
+    if (!_data.length) return alert('No data to export. Load a class first.');
+    const headers = ['student_name','challenge_id','hints_used','time_spent_seconds','fix_submitted','solved_at'];
+    const rows = [headers.join(',')];
+    _data.forEach(r => {
+      rows.push(headers.map(h => '"' + String(r[h] || '').replace(/"/g, '""') + '"').join(','));
+    });
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = _classCode + '-progress.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  window.confirmReset = function () {
+    if (!_classCode) return alert('Load a class first.');
+    if (!confirm('Are you sure you want to delete ALL progress for class "' + _classCode + '"? This cannot be undone.')) return;
+    fetch('/api/progress/' + encodeURIComponent(_classCode), { method: 'DELETE' })
+      .then(r => r.json())
+      .then(() => { _data = []; render(); alert('Class progress reset.'); })
+      .catch(err => alert('Error: ' + err.message));
+  };
+
+  function formatTime(seconds) {
+    if (seconds < 60) return seconds + 's';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+})();
+</script>
+</body>
+</html>

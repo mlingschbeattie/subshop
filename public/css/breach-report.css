@@ -1,0 +1,633 @@
+/* breach-report.css — Breach Report Modal Styles (v4) */
+
+/* ── Overlay ──────────────────────────────────────────────── */
+.breach-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  padding: 1rem;
+  overflow-y: auto;
+}
+.breach-modal-overlay.active { opacity: 1; }
+
+/* ── Modal Container ──────────────────────────────────────── */
+.breach-modal {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 8px;
+  max-width: 720px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+}
+.breach-modal-overlay.active .breach-modal { transform: scale(1); }
+
+.breach-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #777;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+.breach-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+.breach-tabs {
+  display: flex;
+  border-bottom: 1px solid #333;
+  padding: 0 1rem;
+}
+.breach-tab {
+  background: none;
+  border: none;
+  color: #777;
+  padding: 0.85rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.breach-tab:hover { color: #ccc; }
+.breach-tab.active { color: #f0ece4; border-bottom-color: #e8463a; }
+
+/* ── Panels ───────────────────────────────────────────────── */
+.breach-panel { display: none; padding: 1.75rem; }
+.breach-panel.active { display: block; }
+
+.breach-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.breach-indicator { font-size: 1.5rem; }
+.breach-header h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 0.06em;
+  color: #f0ece4;
+  margin: 0;
+}
+
+.breach-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.breach-vuln-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #f0ece4;
+}
+.breach-owasp-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  color: #f5a623;
+  background: rgba(245, 166, 35, 0.12);
+  padding: 0.25rem 0.65rem;
+  border-radius: 3px;
+  border: 1px solid rgba(245, 166, 35, 0.3);
+}
+
+.breach-summary {
+  color: #aaa;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+.breach-impacts {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+.breach-impacts li {
+  padding: 0.4rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  color: #f0ece4;
+  font-size: 0.88rem;
+}
+.breach-impacts li::before {
+  content: '•';
+  position: absolute;
+  left: 0.25rem;
+  color: #e8463a;
+  font-weight: 700;
+}
+
+.breach-meta {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.82rem;
+  color: #aaa;
+  display: grid;
+  gap: 0.5rem;
+}
+.breach-meta strong { color: #f0ece4; }
+
+/* ── Real World Panel ─────────────────────────────────────── */
+.breach-year {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.3rem;
+  color: #f5a623;
+  letter-spacing: 0.04em;
+  margin-bottom: 1rem;
+}
+.breach-real-world p {
+  color: #aaa;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Fix Panel ────────────────────────────────────────────── */
+.breach-code-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+  margin-top: 1rem;
+}
+.breach-vuln-label { color: #e8463a; }
+.breach-fix-label { color: #4ade80; }
+
+.breach-code {
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 1rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem;
+  color: #aaa;
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+.breach-code-vuln { border-left: 3px solid #e8463a; }
+.breach-code-fix { border-left: 3px solid #4ade80; }
+
+.breach-explanation {
+  color: #aaa;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  margin-top: 1.25rem;
+  padding: 0.85rem;
+  background: rgba(56, 189, 248, 0.06);
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.15);
+}
+
+.breach-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Fix It Panel ─────────────────────────────────────────── */
+.breach-fix-intro {
+  color: #aaa;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.breach-fix-file {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  color: #f5a623;
+  background: rgba(245, 166, 35, 0.08);
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+  display: inline-block;
+}
+
+#fix-it-editor-container {
+  border: 1px solid #333;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  min-height: 200px;
+}
+#fix-it-editor-container .CodeMirror {
+  height: auto;
+  min-height: 200px;
+  max-height: 400px;
+  font-size: 0.82rem;
+  background: #0a0a0a;
+}
+
+.breach-fix-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.breach-fix-result {
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  color: #777;
+}
+.breach-fix-result.pass {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.3);
+  background: rgba(74, 222, 128, 0.06);
+}
+.breach-fix-result.fail {
+  color: #e8463a;
+  border-color: rgba(232, 70, 58, 0.3);
+  background: rgba(232, 70, 58, 0.06);
+}
+.breach-fix-result.warn {
+  color: #f5a623;
+  border-color: rgba(245, 166, 35, 0.3);
+  background: rgba(245, 166, 35, 0.06);
+}
+
+/* ── Confetti Animation (CSS only) ────────────────────────── */
+.confetti-container {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+@keyframes confettiFall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -10px;
+  width: 10px;
+  height: 10px;
+  animation: confettiFall 2s ease-out forwards;
+}
+
+/* ── View Report Button ───────────────────────────────────── */
+#view-report-btn {
+  box-shadow: 0 4px 20px rgba(232, 70, 58, 0.3);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 4px 20px rgba(232, 70, 58, 0.3); }
+  50% { box-shadow: 0 4px 30px rgba(232, 70, 58, 0.5); }
+}
+
+/* ── Module Cards ─────────────────────────────────────────── */
+.module-board {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 2rem 0;
+  position: relative;
+}
+
+.module-connector {
+  width: 2px;
+  height: 2rem;
+  background: #333;
+  margin: 0 auto;
+  position: relative;
+}
+.module-connector::after {
+  content: '▼';
+  position: absolute;
+  bottom: -0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #555;
+  font-size: 0.7rem;
+}
+
+.module-card {
+  background: var(--surface, #161616);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+  cursor: pointer;
+}
+.module-card:hover { border-color: #555; }
+.module-card.locked { opacity: 0.6; cursor: default; }
+.module-card.locked:hover { border-color: var(--border, #2a2a2a); }
+.module-card.complete { border-color: #4ade80; }
+
+.module-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.module-card.expanded .module-card-header {
+  border-bottom-color: var(--border, #2a2a2a);
+}
+
+.module-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
+  min-width: 2.5rem;
+  text-align: center;
+  line-height: 1;
+}
+
+.module-info { flex: 1; }
+.module-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.2rem;
+}
+.module-subtitle {
+  font-size: 0.78rem;
+  color: #7a7a7a;
+}
+
+.module-status {
+  text-align: right;
+  font-size: 0.78rem;
+  min-width: 100px;
+}
+.module-progress-text { color: #7a7a7a; margin-bottom: 0.3rem; }
+.module-progress-bar {
+  height: 4px;
+  background: #2a2a2a;
+  border-radius: 100px;
+  overflow: hidden;
+}
+.module-progress-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.4s ease;
+}
+
+.module-lock {
+  font-size: 0.78rem;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.module-challenges {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.module-card.expanded .module-challenges { max-height: 800px; }
+
+.module-challenges-inner {
+  padding: 1rem 1.5rem 1.5rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.module-challenge-card {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  text-decoration: none;
+  color: #f0ece4;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.module-challenge-card:hover { border-color: #555; transform: translateX(4px); }
+.module-challenge-card.solved {
+  border-color: #4ade80;
+}
+.module-challenge-card.solved::before {
+  content: '✅';
+  font-size: 0.9rem;
+}
+
+.module-challenge-info { flex: 1; }
+.module-challenge-name { font-weight: 600; font-size: 0.9rem; }
+.module-challenge-sub { font-size: 0.75rem; color: #7a7a7a; }
+.module-challenge-owasp {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  color: #f5a623;
+}
+.module-challenge-quality {
+  font-size: 0.72rem;
+  margin-top: 0.2rem;
+}
+
+/* ── Case File ────────────────────────────────────────────── */
+.case-file {
+  background: rgba(245, 166, 35, 0.04);
+  border: 1px solid rgba(245, 166, 35, 0.2);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+.case-file-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: #f5a623;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(245, 166, 35, 0.15);
+}
+.case-file-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.25rem;
+}
+.case-file-label {
+  font-weight: 700;
+  color: #f5a623;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.case-file-value { color: #aaa; }
+
+/* ── Onboarding Modal ─────────────────────────────────────── */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  padding: 1rem;
+}
+.onboarding-overlay.active { opacity: 1; }
+
+.onboarding-modal {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 8px;
+  max-width: 480px;
+  width: 100%;
+  padding: 2.5rem;
+  text-align: center;
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+}
+.onboarding-overlay.active .onboarding-modal { transform: scale(1); }
+
+.onboarding-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 1rem;
+}
+.onboarding-title em { color: #f5a623; font-style: normal; }
+
+.onboarding-text {
+  color: #aaa;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+
+.onboarding-form {
+  display: grid;
+  gap: 1rem;
+  text-align: left;
+}
+.onboarding-form label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #7a7a7a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+.onboarding-form input {
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  color: #f0ece4;
+  padding: 0.65rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+  font-family: inherit;
+}
+.onboarding-form input:focus { border-color: #f5a623; }
+.onboarding-hint {
+  font-size: 0.72rem;
+  color: #555;
+  margin-top: 0.2rem;
+}
+
+.onboarding-submit {
+  margin-top: 0.5rem;
+}
+
+/* ── Hint Token Economy ───────────────────────────────────── */
+.hint-tokens-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.82rem;
+  color: #f5a623;
+  background: rgba(245, 166, 35, 0.06);
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+.hint-token-count { font-weight: 700; }
+
+.hint-spend-btn {
+  background: none;
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  color: #f5a623;
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+.hint-spend-btn:hover { background: rgba(245, 166, 35, 0.1); }
+.hint-spend-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.hint-walkthrough-btn {
+  background: none;
+  border: 1px solid rgba(232, 70, 58, 0.3);
+  color: #e8463a;
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 0.5rem;
+}
+.hint-walkthrough-btn:hover { background: rgba(232, 70, 58, 0.1); }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .breach-modal { max-height: 95vh; }
+  .breach-panel { padding: 1.25rem; }
+  .breach-header h2 { font-size: 1.2rem; }
+  .breach-tabs { overflow-x: auto; }
+  .breach-tab { padding: 0.75rem 0.65rem; font-size: 0.75rem; }
+  .module-card-header { padding: 1rem; flex-wrap: wrap; }
+  .module-status { text-align: left; min-width: unset; width: 100%; }
+  .case-file-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

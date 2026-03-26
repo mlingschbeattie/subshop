@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menu — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a01">
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #1 · A01 — Broken Access Control                 ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: Check what URL parameters this page accepts -->
+<!-- HINT: What role might an employee use when viewing this page?    -->
+<!-- HINT: Try appending   ?role=staff   to the current URL.         -->
+<!--                                                                  -->
+<!-- VULNERABILITY: Access control is enforced entirely in client-side -->
+<!-- JavaScript. The server never validates the user's role — anyone  -->
+<!-- who knows the parameter can access admin-only content.           -->
+
+<header class="site-header">
+  <nav class="main-nav">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <ul class="main-nav-links">
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="order.html">Order</a></li>
+      <li><a href="loyalty.html">Rewards</a></li>
+      <li><a href="#">Locations</a></li>
+      <li><a href="order.html">Catering</a></li>
+      <li><a href="../challenges.html">Challenges</a></li>
+    </ul>
+    <div class="nav-ctas">
+      <a href="login.html" class="btn-signin">Sign In</a>
+      <a href="order.html" class="btn btn-primary btn-lg">Order Now</a>
+      <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+    </div>
+  </nav>
+</header>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A01">
+  <span class="learn-tag">OWASP A01</span>
+  <strong>Broken Access Control</strong>
+  <span>"Users should only be able to access what they are explicitly permitted to."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — Broken Access Control</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The Sub Shop's menu page hides staff-only items behind a URL parameter. Access control is enforced entirely in client-side JavaScript.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">Internal pricing, supplier costs, unreleased menu items — visible to anyone who discovers the right parameter.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Find the hidden parameter that reveals staff content. Prove that client-side role checks are never enough.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="page-eyebrow">OUR MENU</div>
+    <h1>Our Menu</h1>
+    <p>Fresh-made subs, hand-crafted daily. Classic flavors, premium ingredients.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> This page shows different content depending on a URL parameter.</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> Look at the URL bar. What query parameters does this page check?</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> Try appending <code>?role=staff</code> to the URL and reloading.</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">Add <code>?role=staff</code> (or <code>?role=admin</code>) to the URL. The page JavaScript checks <code>URLSearchParams</code> and reveals hidden staff-only menu items and internal pricing. This is purely client-side — no server validation.</div>
+    </div>
+  </div>
+
+  <!-- Public Menu -->
+  <!-- Photo metadata note: images on this page include embedded PNG tEXt chunks. -->
+  <!-- Forensics tip: run  exiftool  or  python -c "from PIL import Image; print(Image.open('assets/sub1.png').info)"  on any image. -->
+  <div class="menu-grid" id="public-menu">
+    <div class="menu-item">
+      <!-- sub1.png — the feature sub; metadata may contain more than a caption -->
+      <div class="menu-item-img"><img src="../assets/sub1.png" alt="The OnGodfather sub"></div>
+      <div class="menu-item-body">
+        <div class="menu-item-name">The OnGodfather 🔥</div>
+        <div class="menu-item-desc">12 inches of Italian cold cuts, banana peppers, provolone, and our secret oil blend. No questions.</div>
+        <div class="menu-item-price">$13.99</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <!-- sub2.png — signature sub photo; metadata may contain more than a caption -->
+      <div class="menu-item-img"><img src="../assets/sub2.png" alt="Classic Italian sub"></div>
+      <div class="menu-item-body">
+        <div class="menu-item-name">Classic Italian</div>
+        <div class="menu-item-desc">Salami, pepperoni, capicola, provolone, lettuce, tomato, hot peppers</div>
+        <div class="menu-item-price">$12.99</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-item-img">🍅</div>
+      <div class="menu-item-body">
+        <div class="menu-item-name">Veggie Delight</div>
+        <div class="menu-item-desc">Roasted peppers, cucumber, avocado, spinach, feta, balsamic glaze</div>
+        <div class="menu-item-price">$10.99</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <!-- sub1.png — loyalty preview shot; contains embedded member token data -->
+      <div class="menu-item-img"><img src="../assets/sub1.png" alt="Turkey Club sub"></div>
+      <div class="menu-item-body">
+        <div class="menu-item-name">Turkey Club</div>
+        <div class="menu-item-desc">Roasted turkey, bacon, swiss, avocado, lettuce, tomato, mayo</div>
+        <div class="menu-item-price">$13.49</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-item-img">🥩</div>
+      <div class="menu-item-body">
+        <div class="menu-item-name">Philly Cheesesteak</div>
+        <div class="menu-item-desc">Shaved ribeye, sautéed onions &amp; peppers, provolone, hoagie roll</div>
+        <div class="menu-item-price">$14.99</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-item-img">🦐</div>
+      <div class="menu-item-body">
+        <div class="menu-item-name">Shrimp Po&rsquo;Boy</div>
+        <div class="menu-item-desc">Crispy shrimp, remoulade, shredded lettuce, tomato, pickles</div>
+        <div class="menu-item-price">$15.49</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-item-img">🧀</div>
+      <div class="menu-item-body">
+        <div class="menu-item-name">Meatball Parm</div>
+        <div class="menu-item-desc">House meatballs, San Marzano marinara, fresh mozzarella, basil</div>
+        <div class="menu-item-price">$13.99</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DRINKS ──────────────────────────────────────────────────────────── -->
+  <div style="margin-top:2.5rem;">
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.06em;margin-bottom:0.25rem;">Drinks</h2>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0;">Pair your sub with a cold one.</p>
+    <div class="drink-grid">
+      <div class="drink-card">
+        <div class="drink-card-img"><img src="../assets/crush1.png" alt="Strawberry Crush"></div>
+        <div class="drink-card-body">
+          <div class="drink-card-name">Strawberry Crush</div>
+          <div class="drink-card-price">$2.49</div>
+        </div>
+      </div>
+      <div class="drink-card">
+        <div class="drink-card-img"><img src="../assets/crush2.png" alt="Peach Crush"></div>
+        <div class="drink-card-body">
+          <div class="drink-card-name">Peach Crush</div>
+          <div class="drink-card-price">$2.49</div>
+        </div>
+      </div>
+      <div class="drink-card">
+        <div class="drink-card-img"><img src="../assets/crush3.png" alt="Orange Crush"></div>
+        <div class="drink-card-body">
+          <div class="drink-card-name">Orange Crush</div>
+          <div class="drink-card-price">$2.49</div>
+        </div>
+      </div>
+      <div class="drink-card">
+        <div class="drink-card-img"><img src="../assets/crush4.png" alt="Orange Crush 2L"></div>
+        <div class="drink-card-body">
+          <div class="drink-card-name">Orange Crush 2L</div>
+          <div class="drink-card-price">$3.99</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ADMIN SECTION ═══════════════════════════════════════════════ -->
+  <!-- Hidden from regular customers — shown only when ?role=admin       -->
+  <!-- VULNERABILITY: Any visitor can set ?role=admin in the URL bar.    -->
+  <!-- A real implementation would verify role server-side via session.  -->
+  <div id="admin-panel" class="hidden admin-section">
+    <div class="alert alert-danger">
+      ⚠️ &nbsp;<strong>ADMIN VIEW — Internal Pricing &amp; Unreleased Items</strong>&nbsp;
+      — You should not be here.
+    </div>
+
+    <h2>Internal Pricing Sheet</h2>
+    <table class="data-table" style="margin-bottom:1.5rem;">
+      <thead>
+        <tr>
+          <th>Item</th><th>Public Price</th><th>Our Cost</th><th>Margin</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Classic Italian</td>  <td>$12.99</td><td>$3.20</td><td>75.4%</td><td><span class="text-success">Active</span></td></tr>
+        <tr><td>Veggie Delight</td>   <td>$10.99</td><td>$2.80</td><td>74.5%</td><td><span class="text-success">Active</span></td></tr>
+        <tr><td>Turkey Club</td>      <td>$13.49</td><td>$3.50</td><td>74.0%</td><td><span class="text-success">Active</span></td></tr>
+        <tr><td>Philly Cheesesteak</td><td>$14.99</td><td>$5.10</td><td>66.0%</td><td><span class="text-success">Active</span></td></tr>
+        <tr><td>The Devastator (UNRELEASED)</td><td>$21.99</td><td>$6.80</td><td>69.1%</td><td><span class="text-warning">DRAFT — Do Not Publish</span></td></tr>
+        <tr><td>Staff Meal</td>       <td>FREE</td>  <td>—</td>   <td>—</td>   <td><span class="text-danger">Staff Only</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Upcoming Price Changes</h2>
+    <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:0.4rem;">Turkey Club → $15.49 (effective next Monday — supplier cost increase)</p>
+    <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:1.5rem;">Philly Cheesesteak → $16.99 (Q2 revision)</p>
+
+    <button class="btn btn-primary" onclick="SubShop.markComplete(1)">
+      ✓ &nbsp;Mark Challenge #1 Complete
+    </button>
+  </div>
+
+</div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">Access controls that only exist in the browser can be bypassed by anyone who looks at the URL. If the server doesn't enforce authorization, the client-side check is just decoration.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> A "Staff Only" door that's just labeled, not locked — anyone can push it open.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2021 Parler breach — sequential API IDs with no auth checks exposed 70TB of user data.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div class="page-footer-inner">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <div class="page-footer-links">
+      <a href="menu.html">Menu</a>
+      <a href="order.html">Order</a>
+      <a href="loyalty.html">Rewards</a>
+      <a href="#">Locations</a>
+      <a href="feedback.html">Contact</a>
+    </div>
+    <div class="page-footer-copy">&copy; 2025 The Sub Shop LLC &mdash; All Rights Reserved<br><a href="../challenges.html" class="lab-link">🔐</a></div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY: Role is read from the URL query string and used to
+  // show/hide content. No server-side session or token is checked.
+  // Fix: Validate roles exclusively on the server. Never trust client input.
+  // ─────────────────────────────────────────────────────────────────────
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    const role = params.get('role'); // attacker-controlled
+
+    if (role === 'admin') {
+      document.getElementById('admin-panel').classList.remove('hidden');
+      document.querySelector('.page-header p').insertAdjacentHTML(
+        'beforeend',
+        '&ensp;<span class="text-accent" style="font-size:0.8rem;">[ADMIN MODE ACTIVE]</span>'
+      );
+    }
+  })();
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>

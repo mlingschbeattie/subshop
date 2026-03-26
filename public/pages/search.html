@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Menu — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a03-dom">
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  CHALLENGE #3 · A03 — Injection (Stored + Reflected XSS)   ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!--                                                                  -->
+<!-- HINT: What happens if your search term contains HTML tags? -->
+<!--                                                                  -->
+<!-- VULNERABILITY: Two XSS vectors exist on this page.             -->
+<!-- 1. Reflected — search query written via innerHTML (URL-based)   -->
+<!-- 2. Stored   — reviews saved to localStorage, re-rendered on     -->
+<!--    every page load via innerHTML with no sanitization.          -->
+
+<header class="site-header">
+  <nav class="main-nav">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <ul class="main-nav-links">
+      <li><a href="menu.html">Menu</a></li>
+      <li><a href="order.html">Order</a></li>
+      <li><a href="loyalty.html">Rewards</a></li>
+      <li><a href="#">Locations</a></li>
+      <li><a href="order.html">Catering</a></li>
+      <li><a href="../challenges.html">Challenges</a></li>
+    </ul>
+    <div class="nav-ctas">
+      <a href="login.html" class="btn-signin">Sign In</a>
+      <a href="order.html" class="btn btn-primary btn-lg">Order Now</a>
+      <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+    </div>
+  </nav>
+</header>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A03">
+  <span class="learn-tag">OWASP A03</span>
+  <strong>Injection — DOM-based XSS</strong>
+  <span>"When user input is placed directly into HTML without sanitization, it can become executable code."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — DOM-Based XSS</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The search feature renders results dynamically using innerHTML. User input flows directly into the DOM without sanitization.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">Other users' sessions, cookies, and browser context — any visitor who triggers malicious search input.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Craft a search query that executes JavaScript in the browser through DOM-based cross-site scripting.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="page-eyebrow">SEARCH MENU</div>
+    <h1>Search Menu</h1>
+    <p>Find your favorite sub by name, ingredient, or dietary preference.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> Look at the URL after you search. The search term appears in the page.</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> Try searching for <code>&lt;b&gt;test&lt;/b&gt;</code> — does the text render bold?</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> The results area uses <code>innerHTML</code>. Try <code>&lt;img src=x onerror=alert(1)&gt;</code>.</div>
+      <div class="hint-item hidden"><span class="hint-num">4.</span> Community reviews are stored in localStorage and also rendered via innerHTML — stored XSS!</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">Search for <code>&lt;img src=x onerror=alert(document.domain)&gt;</code> — it executes as JavaScript. For stored XSS, post a review with the same payload; it persists in localStorage and fires on every page load.</div>
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <form class="search-bar" id="search-form" onsubmit="doSearch(event)">
+    <input type="text" id="search-input" placeholder="Search subs, ingredients…" autocomplete="off">
+    <button type="submit" class="btn btn-primary">Search</button>
+    <button type="button" class="btn btn-ghost" onclick="clearSearch()">Clear</button>
+  </form>
+
+  <!-- Results header: search term reflected here via innerHTML -->
+  <!-- VULNERABILITY: innerHTML used below — never sanitized     -->
+  <div id="results-header" class="search-results-header"></div>
+  <div id="results-grid" class="menu-grid"></div>
+
+  <!-- Shown when no results -->
+  <div id="no-results" class="hidden" style="color:var(--text-muted);font-size:0.9rem;padding:2rem 0;">
+    No menu items matched your search.
+  </div>
+
+  <!-- XSS Demo complete button — shown via script after payload fires -->
+  <div id="xss-banner" class="hidden admin-section" style="margin-top:2rem;">
+    <div class="alert alert-danger">
+      🚨 &nbsp;<strong>XSS Payload Executed — Reflected.</strong>
+      Arbitrary JavaScript ran via the URL query string. In a real app, this link could be emailed to victims.
+    </div>
+  </div>
+
+  <!-- Hint panel -->
+  <div class="panel mt-3" style="background:var(--surface-2);">
+    <h3 style="margin-bottom:0.5rem;">Part A — Reflected XSS: Try These Searches</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+      <button class="btn btn-ghost" onclick="setSearch('turkey')">turkey</button>
+      <button class="btn btn-ghost" onclick="setSearch('veggie')">veggie</button>
+      <button class="btn btn-ghost" onclick="setSearch('&lt;b&gt;bold&lt;/b&gt;')">&lt;b&gt;bold&lt;/b&gt;</button>
+      <button class="btn btn-ghost" onclick="setSearch('&lt;img src=x onerror=alert(1)&gt;')">&lt;img src=x onerror=alert(1)&gt;</button>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.75rem;">The last example is an XSS payload — observe what happens.</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- STORED XSS SECTION                                              -->
+  <!-- Reviews are saved to localStorage and re-rendered on page load  -->
+  <!-- via innerHTML — no sanitization. Payloads fire on every reload. -->
+  <!-- HINT: Try: <img src=x onerror="alert('Stored XSS fires on reload!')"> -->
+  <!-- HINT: After posting, RELOAD the page — the payload fires again  -->
+  <!-- HINT: This is stored XSS: persists without attacker in URL      -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+
+  <div class="panel mt-3" id="reviews-panel">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
+      <div>
+        <h2 style="margin-bottom:0.2rem;">Community Reviews</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:0;line-height:1.5;">
+          Reviews are saved to <code>localStorage</code> and re-rendered on every page load.
+          <strong style="color:var(--text);">No content filtering applied.</strong>
+        </p>
+      </div>
+      <span style="font-size:0.68rem;background:rgba(230,57,70,0.12);color:var(--danger);border:1px solid rgba(230,57,70,0.3);padding:0.2rem 0.6rem;border-radius:2px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap;">Part B — Stored XSS</span>
+    </div>
+
+    <!-- Stored XSS fires here on page load -->
+    <div id="reviews-list" style="margin-bottom:1.25rem;"></div>
+
+    <!-- Stored XSS completion banner -->
+    <div id="stored-xss-banner" class="hidden admin-section">
+      <div class="alert alert-danger" style="margin-bottom:1rem;">
+        🚨 &nbsp;<strong>Stored XSS Payload Executed.</strong>
+        Your injected script ran on this page load — and will fire on <em>every</em> future reload until cleared.
+        Unlike reflected XSS (URL-based), stored XSS persists and would execute for every visitor automatically.
+      </div>
+      <button class="btn btn-primary" onclick="SubShop.markComplete(3)">
+        ✓ &nbsp;Mark Challenge #3 Complete
+      </button>
+    </div>
+
+    <!-- Post a review form -->
+    <div style="border-top:1px solid var(--border);padding-top:1.25rem;margin-top:1.25rem;">
+      <h3 style="margin-bottom:0.75rem;">Post a Review</h3>
+      <form id="review-form" onsubmit="postReview(event)">
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:0.75rem;align-items:start;" class="review-form-grid">
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Name</label>
+            <input type="text" id="rev-name" placeholder="Your name">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Review <span style="font-weight:400;text-transform:none;color:var(--text-muted);">(HTML accepted — no filtering)</span></label>
+            <textarea id="rev-body" rows="2" placeholder="Share your experience… or try an HTML payload here"></textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;margin-top:0.75rem;flex-wrap:wrap;">
+          <button type="submit" class="btn btn-primary">Post Review</button>
+          <button type="button" class="btn btn-ghost" onclick="clearStoredReviews()">Clear All Reviews</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel" style="background:var(--surface-2);margin-top:1.25rem;padding:1rem;">
+      <h3 style="margin-bottom:0.5rem;font-size:0.88rem;">Part B Attack Vectors</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+        <button class="btn btn-ghost" style="font-size:0.75rem;" onclick="prefillReview('&lt;b&gt;Bold text renders&lt;/b&gt;')">Test: &lt;b&gt; renders</button>
+        <button class="btn btn-ghost" style="font-size:0.75rem;" onclick="prefillReview('&lt;img src=x onerror=alert(document.domain)&gt;')">XSS: onerror alert</button>
+        <button class="btn btn-ghost" style="font-size:0.75rem;" onclick="prefillReview('&lt;img src=x onerror=&quot;document.body.style.background=\'red\'&quot;&gt;')">XSS: change background</button>
+      </div>
+      <p style="font-size:0.75rem;color:var(--text-muted);line-height:1.6;">
+        Post a payload → reload the page → it fires again. That's stored XSS — the payload persists in localStorage, not in the URL.
+      </p>
+    </div>
+  </div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">When user input is placed directly into HTML without sanitization, it can become executable code. The browser can't tell the difference between your content and a script tag.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> Passing someone a note that turns into a loudspeaker announcement — your words literally get executed by the system.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2005 Samy worm — a MySpace XSS spread to 1 million users in 20 hours.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div class="page-footer-inner">
+    <a href="../index.html" class="nav-brand-hp">THE <span>SUB</span> SHOP</a>
+    <div class="page-footer-links">
+      <a href="menu.html">Menu</a>
+      <a href="order.html">Order</a>
+      <a href="loyalty.html">Rewards</a>
+      <a href="#">Locations</a>
+      <a href="feedback.html">Contact</a>
+    </div>
+    <div class="page-footer-copy">&copy; 2025 The Sub Shop LLC &mdash; All Rights Reserved<br><a href="../challenges.html" class="lab-link">🔐</a></div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  // ─────────────────────────────────────────────────────────────────────
+  // VULNERABILITY: The "q" parameter from the URL is read and written
+  // directly into element.innerHTML — no encoding, no DOMPurify, nothing.
+  //
+  // Proof of concept: ?q=<img src=x onerror=alert(document.cookie)>
+  //
+  // Fix: Use element.textContent instead of innerHTML, or sanitize with
+  // DOMPurify.sanitize() before inserting user-supplied strings.
+  // ─────────────────────────────────────────────────────────────────────
+
+  const MENU = [
+    { name: 'Classic Italian',   desc: 'Salami, pepperoni, capicola, provolone', price: '$12.99', emoji: '🥖', tags: ['italian','meat','classic'] },
+    { name: 'Veggie Delight',    desc: 'Roasted peppers, avocado, feta, spinach', price: '$10.99', emoji: '🍅', tags: ['veggie','vegan','healthy'] },
+    { name: 'Turkey Club',       desc: 'Turkey, bacon, swiss, avocado, mayo',     price: '$13.49', emoji: '🍗', tags: ['turkey','club','bacon'] },
+    { name: 'Philly Cheesesteak',desc: 'Ribeye, onions, peppers, provolone',      price: '$14.99', emoji: '🥩', tags: ['beef','philly','hot'] },
+    { name: 'Shrimp Po\'Boy',    desc: 'Crispy shrimp, remoulade, pickles',       price: '$15.49', emoji: '🦐', tags: ['seafood','shrimp','fried'] },
+    { name: 'Meatball Parm',     desc: 'Meatballs, marinara, fresh mozzarella',   price: '$13.99', emoji: '🧀', tags: ['meatball','parm','hot'] },
+  ];
+
+  function setSearch(val) {
+    document.getElementById('search-input').value = val;
+    const params = new URLSearchParams(window.location.search);
+    params.set('q', val);
+    window.location.search = params.toString();
+  }
+
+  function doSearch(e) {
+    e.preventDefault();
+    const q = document.getElementById('search-input').value;
+    const params = new URLSearchParams(window.location.search);
+    params.set('q', q);
+    window.location.search = params.toString();
+  }
+
+  function clearSearch() {
+    window.location.href = 'search.html';
+  }
+
+  function renderResults(q) {
+    const header  = document.getElementById('results-header');
+    const grid    = document.getElementById('results-grid');
+    const noRes   = document.getElementById('no-results');
+
+    if (!q) {
+      // Show full menu with no search header
+      grid.innerHTML = MENU.map(item => menuItemHTML(item)).join('');
+      return;
+    }
+
+    // ── VULNERABILITY ────────────────────────────────────────────────
+    // User input (q) inserted via innerHTML without sanitization.
+    // An attacker can inject HTML/JS here.
+    header.innerHTML = `Showing results for: <strong>${q}</strong>`;
+    // ────────────────────────────────────────────────────────────────
+
+    const lower = q.toLowerCase();
+    const matches = MENU.filter(item =>
+      item.name.toLowerCase().includes(lower) ||
+      item.desc.toLowerCase().includes(lower) ||
+      item.tags.some(t => t.includes(lower))
+    );
+
+    if (matches.length === 0) {
+      grid.innerHTML = '';
+      noRes.classList.remove('hidden');
+    } else {
+      noRes.classList.add('hidden');
+      grid.innerHTML = matches.map(item => menuItemHTML(item)).join('');
+    }
+  }
+
+  function menuItemHTML(item) {
+    return `
+      <div class="menu-item">
+        <div class="menu-item-img">${item.emoji}</div>
+        <div class="menu-item-body">
+          <div class="menu-item-name">${item.name}</div>
+          <div class="menu-item-desc">${item.desc}</div>
+          <div class="menu-item-price">${item.price}</div>
+        </div>
+      </div>`;
+  }
+
+  // Expose the completion banner via a global so the XSS payload can trigger it
+  // Students can run:  document.getElementById('xss-banner').classList.remove('hidden')
+  // as part of their onerror payload to verify script execution
+  window._xssFlag = function () {
+    document.getElementById('xss-banner').classList.remove('hidden');
+    document.getElementById('stored-xss-banner').classList.remove('hidden');
+  };
+
+  // Run on page load
+  const q = new URLSearchParams(window.location.search).get('q') || '';
+  document.getElementById('search-input').value = q;
+  renderResults(q);
+
+  // Auto-detect XSS: if the injected payload calls alert(), reveal the completion banners.
+  const _origAlert = window.alert;
+  window.alert = function (...args) {
+    _origAlert.apply(this, args);
+    window._xssFlag();
+  };
+
+  // ── Stored XSS ──────────────────────────────────────────────────
+  // Reviews are saved to localStorage as raw HTML and re-inserted
+  // via innerHTML on every page load — stored XSS vulnerability.
+  //
+  // Proof of concept: post a review containing:
+  //   <img src=x onerror="alert('Stored XSS — fires every reload!')">
+  //
+  // Fix: Sanitize all stored user content with DOMPurify before
+  // inserting into the DOM, or use textContent for all text fields.
+  // ─────────────────────────────────────────────────────────────────
+
+  const XSS_STORE_KEY = 'subshop_xss_store';
+
+  // Seed default reviews on first visit
+  const SEED_REVIEWS = [
+    { name: 'Tony M.',  body: 'Best turkey club in Brooklyn! Came back three times this week.', ts: '2026-03-01T14:22:00Z' },
+    { name: 'Sarah K.', body: 'Veggie Delight hits different 🔥 Fresh and filling every time.', ts: '2026-03-10T09:15:00Z' },
+    { name: 'Dev Team', body: '<em>Note from dev:</em> review rendering uses innerHTML for rich text support.', ts: '2026-03-15T16:00:00Z' },
+  ];
+  if (!localStorage.getItem(XSS_STORE_KEY)) {
+    localStorage.setItem(XSS_STORE_KEY, JSON.stringify(SEED_REVIEWS));
+  }
+
+  function renderStoredReviews() {
+    const list = document.getElementById('reviews-list');
+    let reviews = [];
+    try { reviews = JSON.parse(localStorage.getItem(XSS_STORE_KEY) || '[]'); } catch(e) {}
+
+    if (reviews.length === 0) {
+      list.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem 0;">No reviews yet — be the first!</p>';
+      return;
+    }
+    // ── VULNERABILITY: review.body inserted via innerHTML — no sanitization ──
+    list.innerHTML = reviews.map(r => `
+      <div class="review-item">
+        <div class="review-header">
+          <strong>${r.name || 'Anonymous'}</strong>
+          <span style="color:var(--text-muted);font-size:0.72rem;">${new Date(r.ts).toLocaleString()}</span>
+        </div>
+        <div class="review-body">${r.body}</div>
+      </div>
+    `).join('');
+    // ────────────────────────────────────────────────────────────────
+  }
+
+  function postReview(e) {
+    e.preventDefault();
+    const name = document.getElementById('rev-name').value.trim() || 'Anonymous';
+    const body = document.getElementById('rev-body').value;
+    if (!body.trim()) return;
+
+    let reviews = [];
+    try { reviews = JSON.parse(localStorage.getItem(XSS_STORE_KEY) || '[]'); } catch(e) {}
+    // Store raw HTML — no sanitization (vulnerability)
+    reviews.push({ name, body, ts: new Date().toISOString() });
+    localStorage.setItem(XSS_STORE_KEY, JSON.stringify(reviews));
+    document.getElementById('review-form').reset();
+    renderStoredReviews();
+  }
+
+  function clearStoredReviews() {
+    localStorage.removeItem(XSS_STORE_KEY);
+    renderStoredReviews();
+  }
+
+  function prefillReview(html) {
+    // decode HTML entities back to characters for the textarea
+    const txt = html.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"');
+    document.getElementById('rev-body').value = txt;
+    document.getElementById('rev-name').value = 'Attacker';
+    document.getElementById('rev-body').focus();
+  }
+
+  // Render stored reviews (stored XSS fires here on load if payload is stored)
+  renderStoredReviews();
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>

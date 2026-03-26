@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders — The Sub Shop</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/breach-report.css">
+</head>
+<body data-challenge="a01-idor">
+
+<!-- HINT: Change the order ID in the request. Does the server check that order belongs to you? -->
+<!-- OWASP: A01 - Broken Access Control (IDOR) -->
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">THE <span>SUB</span> SHOP</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html">Order</a></li>
+    <li><a href="loyalty.html">Rewards</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Staff Portal</a></li>
+    <li><a href="../challenges.html">Challenges</a></li>
+  </ul>
+  <button id="learn-toggle" aria-pressed="false">🎓 Learn Mode</button>
+</nav>
+
+<!-- Learn Mode Banner -->
+<div class="learn-only learn-banner" data-owasp="A01">
+  <span class="learn-tag">OWASP A01</span>
+  <strong>Broken Access Control — IDOR</strong>
+  <span>"Users should only be able to access what they are explicitly permitted to."</span>
+</div>
+
+<div class="container">
+  <div class="case-file">
+    <div class="case-file-header">📁 Case File — Insecure Direct Object Reference</div>
+    <div class="case-file-row"><span class="case-file-label">Situation</span><span class="case-file-value">The order lookup lets customers check deliveries by order ID. The server doesn't verify who owns each order.</span></div>
+    <div class="case-file-row"><span class="case-file-label">At Risk</span><span class="case-file-value">Other customers' order details — names, addresses, items, and payment information exposed by sequential IDs.</span></div>
+    <div class="case-file-row"><span class="case-file-label">Your Role</span><span class="case-file-value">Access other customers' orders by manipulating the order ID parameter. Prove the missing authorization check.</span></div>
+  </div>
+
+  <div class="page-header">
+    <div class="owasp-badge">A01 · Challenge #12 · IDOR</div>
+    <h1>My Orders</h1>
+    <p>Look up your order details by entering your order ID.</p>
+  </div>
+
+  <!-- Learn Mode Hints -->
+  <div class="learn-only learn-hints">
+    <button class="hint-toggle-btn" aria-expanded="false">💡 Need a hint?</button>
+    <div class="hint-content collapsed">
+      <div class="hint-item"><span class="hint-num">1.</span> Your order ID is shown in the input field. What happens if you try a different number?</div>
+      <div class="hint-item hidden"><span class="hint-num">2.</span> The server doesn't check if the order belongs to you. Try IDs 1 through 20.</div>
+      <div class="hint-item hidden"><span class="hint-num">3.</span> Open the Network tab and watch the API call: <code>GET /api/orders/[id]</code>.</div>
+      <div class="hint-item hidden"><span class="hint-num">4.</span> Access other users' orders — the server returns them without any ownership check.</div>
+      <button class="hint-next-btn">Show next hint →</button>
+      <button class="hint-show-all">🔓 Show full walkthrough</button>
+      <div class="hint-walkthrough hidden">Change the order ID to any number between 1 and 20. The server returns every order regardless of who placed it. There is no ownership validation — classic IDOR.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:2rem;align-items:start;">
+    <div>
+      <div class="panel">
+        <h2>Order Lookup</h2>
+        <div class="form-group">
+          <label>Order ID</label>
+          <div style="display:flex;gap:0.5rem;">
+            <input type="number" id="order-id" value="3" min="1" style="max-width:120px;">
+            <button class="btn btn-primary" id="lookup-btn">Look Up</button>
+          </div>
+        </div>
+        <div id="order-result" style="margin-top:1rem;"></div>
+        <div id="order-error" class="alert alert-danger hidden" style="margin-top:1rem;"></div>
+      </div>
+
+      <div id="banner-idor" class="hidden" style="margin-top:1rem;">
+        <div class="alert alert-danger">
+          🚨 <strong>IDOR Detected!</strong> You accessed an order belonging to another user. The server returned it without verifying ownership — any sequential ID works.
+        </div>
+        <button class="btn btn-primary" onclick="SubShop.markComplete(12)" style="margin-top:0.5rem;">✓ Mark Challenge #12 Complete</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>How It Works</h2>
+        <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;">
+          When you look up an order, the app sends:<br>
+          <code style="font-size:0.8rem;">GET /api/orders/<span id="preview-id" style="color:var(--accent);">3</span></code>
+        </p>
+        <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;margin-top:0.75rem;">
+          The server returns the order data — but does it check if the order is yours?
+        </p>
+      </div>
+
+      <div class="panel" style="background:var(--surface-2);">
+        <h2>Vulnerable Code</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem;">Server returns any order without ownership check:</p>
+        <pre style="font-size:0.75rem;line-height:1.7;">// VULNERABLE: no ownership validation
+app.get('/api/orders/:id', (req, res) => {
+  const row = db.prepare(
+    'SELECT * FROM orders WHERE id = ?'
+  ).get(req.params.id);
+  res.json(row);
+});
+
+// Safe alternative:
+// WHERE id = ? AND user_id = ?</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="learn-only learn-eli5">
+    <div class="eli5-icon">🦆</div>
+    <div class="eli5-body">
+      <p class="eli5-plain">When object IDs are sequential and unvalidated, users can access other people's records by guessing. The server trusts the ID you send without checking if you own that resource.</p>
+      <p class="eli5-analogy"><strong>Think of it like:</strong> Trying locker number 101 when you only own locker 100 — and the lock just opens.</p>
+      <p class="eli5-real"><strong>Real world:</strong> 2021 Instagram API exposed private user data via sequential account IDs with no authorization checks.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  The Sub Shop &mdash; OWASP Top 10 Training Lab &bull; <a href="../challenges.html">← Challenge Board</a>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/learn-mode.js"></script>
+<script>
+  const orderIdInput = document.getElementById('order-id');
+  const previewId = document.getElementById('preview-id');
+  const resultEl = document.getElementById('order-result');
+  const errorEl = document.getElementById('order-error');
+  const bannerEl = document.getElementById('banner-idor');
+  const myUserId = 3; // "Your" user ID — simulated logged-in user
+
+  orderIdInput.addEventListener('input', () => {
+    previewId.textContent = orderIdInput.value || '…';
+  });
+
+  document.getElementById('lookup-btn').addEventListener('click', lookupOrder);
+  orderIdInput.addEventListener('keydown', e => { if (e.key === 'Enter') lookupOrder(); });
+
+  async function lookupOrder() {
+    const id = orderIdInput.value;
+    errorEl.classList.add('hidden');
+    resultEl.innerHTML = '';
+    bannerEl.classList.add('hidden');
+    previewId.textContent = id || '…';
+
+    if (!id) return;
+
+    try {
+      const resp = await fetch('/api/orders/' + encodeURIComponent(id));
+      const data = await resp.json();
+
+      if (!data || data.error) {
+        errorEl.textContent = data?.error || 'Order not found.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      const cols = Object.keys(data);
+      let html = '<table class="data-table"><thead><tr>';
+      cols.forEach(c => { html += '<th>' + escHtml(c) + '</th>'; });
+      html += '</tr></thead><tbody><tr>';
+      cols.forEach(c => { html += '<td>' + escHtml(String(data[c] ?? 'NULL')) + '</td>'; });
+      html += '</tr></tbody></table>';
+      resultEl.innerHTML = html;
+
+      // Detect IDOR — user accessed an order belonging to a different user
+      if (data.user_id && data.user_id !== myUserId) {
+        bannerEl.classList.remove('hidden');
+      }
+    } catch (err) {
+      errorEl.textContent = 'Request failed: ' + err.message;
+      errorEl.classList.remove('hidden');
+    }
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+</script>
+<script src="../js/breach-detector.js"></script>
+<script src="../js/breach-report.js"></script>
+<script src="../js/fix-it.js"></script>
+<script src="../js/hint-tokens.js"></script>
+</body>
+</html>
